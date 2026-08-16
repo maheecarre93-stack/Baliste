@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Baliste</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --encre:#1C2B45;
+    --encre-2:#26385a;
+    --jaune:#E8A33D;
+    --jaune-2:#f0b563;
+    --papier:#F6F3EC;
+    --carte:#FFFFFF;
+    --anthracite:#24272B;
+    --rouge:#B5432E;
+    --vert:#4C7A5D;
+    --ligne:#E1DACB;
+    --ombre: 0 2px 10px rgba(28,43,69,0.08);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+  html,body{margin:0; padding:0; background:var(--papier); color:var(--anthracite); font-family:'IBM Plex Sans', sans-serif; -webkit-font-smoothing:antialiased;}
+  body{padding-bottom: env(safe-area-inset-bottom);}
+  h1,h2,h3, .display{font-family:'Oswald', sans-serif; text-transform:uppercase; letter-spacing:0.04em;}
+  .mono{font-family:'IBM Plex Mono', monospace;}
+  button{font-family:inherit; cursor:pointer;}
+  :focus-visible{outline:3px solid var(--jaune); outline-offset:2px;}
+
+  header{
+    background:var(--encre); color:#fff;
+    padding: max(14px, env(safe-area-inset-top)) 16px 14px;
+    display:flex; align-items:center; gap:10px;
+    position:sticky; top:0; z-index:20;
+    box-shadow:var(--ombre);
+  }
+  .cachet{
+    width:38px; height:38px; border-radius:50%;
+    border:2.5px solid var(--jaune);
+    display:flex; align-items:center; justify-content:center;
+    position:relative; flex-shrink:0;
+  }
+  .cachet::before{
+    content:""; position:absolute; inset:5px; border-radius:50%;
+    border:1px dashed var(--jaune); opacity:0.7;
+  }
+  .cachet svg{width:17px; height:17px; fill:var(--jaune);}
+  header .titre{flex:1; min-width:0;}
+  header h1{font-size:18px; margin:0; line-height:1.1; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  header .sous{font-size:11px; color:#c9d2e3; margin-top:3px; font-family:'IBM Plex Sans'; text-transform:none; letter-spacing:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .icon-btn{
+    background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.18);
+    color:#fff; width:38px; height:38px; border-radius:10px;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .icon-btn:active{background:rgba(255,255,255,0.2);}
+  .icon-btn svg{width:18px; height:18px; stroke:#fff; fill:none; stroke-width:2;}
+
+  main{padding:14px 16px 110px; max-width:640px; margin:0 auto;}
+  .ecran{display:none;}
+  .ecran.actif{display:block;}
+
+  .fil{font-size:12px; color:#8a8271; margin-bottom:10px; font-family:'IBM Plex Mono';}
+
+  .carte{
+    background:var(--carte); border:1px solid var(--ligne); border-radius:12px;
+    padding:14px; margin-bottom:10px; box-shadow:var(--ombre);
+    display:flex; justify-content:space-between; align-items:center; gap:10px;
+  }
+  .carte .nom{font-weight:600; font-size:15.5px;}
+  .carte .detail{font-size:12px; color:#665f50; margin-top:3px; font-family:'IBM Plex Mono';}
+  .chevron{width:18px; height:18px; stroke:#b3ab98; fill:none; stroke-width:2; flex-shrink:0;}
+
+  .vide{text-align:center; padding:50px 20px; color:#8a8271;}
+  .vide svg{width:48px; height:48px; stroke:#c7bfab; fill:none; stroke-width:1.4; margin-bottom:14px;}
+  .vide p{font-size:14px; line-height:1.5; max-width:280px; margin:0 auto;}
+
+  .fab{
+    position:fixed; right:18px; bottom:calc(20px + env(safe-area-inset-bottom));
+    width:58px; height:58px; border-radius:50%; background:var(--jaune);
+    border:none; box-shadow:0 6px 18px rgba(232,163,61,0.5);
+    display:flex; align-items:center; justify-content:center; z-index:25;
+  }
+  .fab:active{transform:scale(0.94);}
+  .fab svg{width:25px; height:25px; stroke:var(--encre); fill:none; stroke-width:2.4;}
+
+  .voile{
+    position:fixed; inset:0; background:rgba(20,25,38,0.5); z-index:40;
+    display:flex; align-items:flex-end; opacity:0; pointer-events:none; transition:opacity 0.18s;
+  }
+  .voile.ouvert{opacity:1; pointer-events:auto;}
+  .feuille{
+    background:var(--papier); width:100%; max-height:92vh; overflow-y:auto;
+    border-radius:20px 20px 0 0; padding:8px 18px calc(24px + env(safe-area-inset-bottom));
+    transform:translateY(16px); transition:transform 0.18s;
+  }
+  .voile.ouvert .feuille{transform:translateY(0);}
+  .poignee{width:38px; height:4px; background:var(--ligne); border-radius:3px; margin:10px auto 14px;}
+  .feuille h2{font-size:16px; margin:2px 0 16px; color:var(--encre);}
+  .champ{margin-bottom:14px;}
+  .champ label{display:block; font-size:12px; font-weight:600; color:#5c5544; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.03em;}
+  .champ input[type=text]{
+    width:100%; padding:12px 13px; border-radius:10px; border:1.5px solid var(--ligne);
+    background:var(--carte); font-size:15.5px; font-family:inherit; color:var(--anthracite);
+  }
+  .champ input:focus{border-color:var(--jaune);}
+  .btn{
+    width:100%; padding:14px; border-radius:11px; border:none; font-weight:600;
+    font-size:15px; display:flex; align-items:center; justify-content:center; gap:8px;
+  }
+  .btn-principal{background:var(--encre); color:#fff;}
+  .btn-principal:disabled{opacity:0.5;}
+
+  .btn-photo{
+    background:var(--jaune); color:var(--encre); border:none; margin-bottom:10px;
+    text-decoration:none;
+  }
+  .btn-photo svg{width:19px; height:19px; stroke:var(--encre); fill:none; stroke-width:2.2;}
+
+  .ligne-ajout{display:flex; gap:8px; margin-bottom:16px;}
+  .ligne-ajout input{
+    flex:1; padding:11px 12px; border-radius:10px; border:1.5px solid var(--ligne);
+    background:var(--carte); font-size:14.5px;
+  }
+  .ligne-ajout button{
+    background:var(--encre); color:#fff; border:none; border-radius:10px; padding:0 16px; font-weight:600; font-size:13.5px;
+  }
+
+  .etat-ia{
+    display:none; align-items:center; gap:10px; background:#eef1f7; color:var(--encre-2);
+    padding:11px 13px; border-radius:10px; font-size:13.5px; margin-bottom:12px;
+  }
+  .spinner{width:16px; height:16px; border:2.5px solid #c6cee0; border-top-color:var(--encre-2); border-radius:50%; animation:spin 0.7s linear infinite; flex-shrink:0;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  .sec-titre{font-family:'Oswald'; font-size:12.5px; letter-spacing:0.06em; color:#8a8271; margin:18px 0 8px; text-transform:uppercase;}
+  .sec-titre:first-child{margin-top:0;}
+
+  .carte-attente{
+    background:#fdf6ea; border:1.5px dashed var(--jaune); border-radius:11px;
+    padding:10px; margin-bottom:8px; display:flex; align-items:center; gap:8px;
+  }
+  .carte-attente input{
+    flex:1; padding:9px 10px; border-radius:8px; border:1.5px solid var(--ligne); font-size:14.5px; background:#fff;
+  }
+  .action-ronde{
+    width:34px; height:34px; border-radius:50%; border:none; display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .action-ronde svg{width:16px; height:16px; stroke-width:2.4; fill:none;}
+  .action-ok{background:var(--vert);} .action-ok svg{stroke:#fff;}
+  .action-non{background:#f1ece0;} .action-non svg{stroke:var(--rouge);}
+
+  .rangee-entree{
+    display:flex; align-items:center; gap:8px; padding:11px 12px; background:var(--carte);
+    border:1px solid var(--ligne); border-radius:11px; margin-bottom:7px;
+  }
+  .rangee-entree .nom{flex:1; font-weight:500; font-size:14.5px;}
+  .rangee-entree input{flex:1; padding:8px 9px; border-radius:8px; border:1.5px solid var(--jaune); font-size:14.5px;}
+  .icone-mini{
+    width:32px; height:32px; border-radius:8px; border:none; background:#f1ece0;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .icone-mini svg{width:15px; height:15px; stroke:#6b6455; fill:none; stroke-width:2.1;}
+  .icone-mini.supp svg{stroke:var(--rouge);}
+
+  .ligne-triee{
+    display:flex; justify-content:space-between; gap:10px; padding:10px 4px;
+    border-bottom:1px solid var(--ligne); font-size:14.5px;
+  }
+  .ligne-triee .grp{font-family:'IBM Plex Mono'; font-size:12.5px; color:#6b6455; flex-shrink:0;}
+  .lettre-sep{
+    font-family:'Oswald'; font-weight:600; font-size:12.5px; color:var(--jaune);
+    padding:14px 4px 4px; letter-spacing:0.08em;
+  }
+
+  .toast{
+    position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(10px);
+    background:var(--anthracite); color:#fff; padding:11px 18px; border-radius:10px;
+    font-size:13.5px; z-index:60; opacity:0; pointer-events:none; transition:all 0.25s;
+    max-width:88vw; text-align:center;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+  .toast.err{background:var(--rouge);}
+  .toast.ok{background:var(--vert);}
+
+  .lien-secours{
+    display:block; text-align:center; font-size:12.5px; color:#7a7362; text-decoration:underline;
+    margin:2px 0 16px; padding:4px;
+  }
+
+  /* ---- Scan en direct ---- */
+  .scan-overlay{
+    position:fixed; inset:0; background:#000; z-index:70;
+    display:none; flex-direction:column;
+  }
+  .scan-overlay.actif{display:flex;}
+  #video-scan{position:absolute; inset:0; width:100%; height:100%; object-fit:cover;}
+  .scan-haut{
+    position:relative; z-index:2; display:flex; justify-content:space-between; align-items:center;
+    padding: max(14px, env(safe-area-inset-top)) 14px 10px; background:linear-gradient(rgba(0,0,0,0.55), transparent);
+  }
+  .scan-haut .icon-btn{background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.25);}
+  .scan-compteur{
+    background:rgba(20,25,38,0.6); border:1px solid rgba(255,255,255,0.25); color:#fff;
+    border-radius:20px; padding:8px 16px; font-size:13px; font-weight:600; font-family:'IBM Plex Sans';
+  }
+  .scan-etat-flottant{
+    position:relative; z-index:2; margin:0 auto; display:none; align-items:center; gap:9px;
+    background:rgba(20,25,38,0.75); color:#fff; padding:9px 15px; border-radius:20px; font-size:13px; width:fit-content;
+  }
+  .spinner-clair{width:14px; height:14px; border:2.5px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%; animation:spin 0.7s linear infinite;}
+  .scan-puces{
+    position:relative; z-index:2; margin-top:auto; padding:0 14px 10px; display:flex; flex-wrap:wrap;
+    gap:8px; justify-content:center;
+  }
+  .scan-puce{
+    background:rgba(255,255,255,0.94); color:var(--encre); border:2px solid var(--jaune);
+    padding:10px 16px; border-radius:22px; font-size:14.5px; font-weight:600; box-shadow:0 3px 10px rgba(0,0,0,0.3);
+  }
+  .scan-puce:active{background:var(--jaune-2);}
+  .scan-bas{
+    position:relative; z-index:2; background:linear-gradient(transparent, rgba(0,0,0,0.7));
+    padding:10px 16px calc(18px + env(safe-area-inset-bottom)); text-align:center;
+  }
+  .scan-message{color:#e4e0d3; font-size:12.5px; margin-bottom:10px; line-height:1.4;}
+  .btn-scan-manuel{
+    background:var(--jaune); color:var(--encre); border:none; border-radius:24px;
+    padding:13px 28px; font-weight:700; font-size:14.5px;
+  }
+  .scan-tiroir{
+    position:absolute; left:0; right:0; bottom:0; background:var(--encre); z-index:3;
+    border-radius:18px 18px 0 0; padding:6px 16px calc(20px + env(safe-area-inset-bottom));
+    max-height:70vh; overflow-y:auto; transform:translateY(100%); transition:transform 0.2s;
+  }
+  .scan-tiroir.ouvert{transform:translateY(0);}
+  .scan-tiroir-poignee{width:36px; height:4px; background:rgba(255,255,255,0.3); border-radius:3px; margin:10px auto 12px;}
+  .scan-tiroir .rangee-entree{background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,0.15);}
+  .scan-tiroir .rangee-entree .nom{color:#fff;}
+  .scan-tiroir .icone-mini{background:rgba(255,255,255,0.12);}
+  .scan-tiroir .icone-mini svg{stroke:#d8d3c4;}
+  .scan-tiroir .icone-mini.supp svg{stroke:#f0a08f;}
+
+  footer.info{ text-align:center; font-size:11px; color:#a49c88; padding:4px 30px 90px; line-height:1.5; }
+
+  #zone-impression{display:none;}
+  @media print{
+    header, .fab, .voile, footer.info, .toast, .scan-overlay{display:none !important;}
+    #ecran-triee .btn-photo, #ecran-triee button{display:none !important;}
+    main > .ecran{display:none !important;}
+    body{background:#fff;}
+    #zone-impression{ display:block; padding:0 10px; font-family:'IBM Plex Sans', sans-serif; color:#000; }
+    #zone-impression h1{font-family:'Oswald'; font-size:20px; margin-bottom:2px;}
+    #zone-impression .sstitre{font-size:12px; color:#444; margin-bottom:16px;}
+    #zone-impression table{width:100%; border-collapse:collapse; font-size:12px;}
+    #zone-impression th{ text-align:left; border-bottom:1.5px solid #000; padding:6px 8px; font-family:'Oswald'; text-transform:uppercase; font-size:10.5px; letter-spacing:0.03em; }
+    #zone-impression td{border-bottom:0.5px solid #ccc; padding:6px 8px;}
+    #zone-impression tr{break-inside:avoid;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <button class="icon-btn" id="btn-retour" style="display:none">
+    <svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>
+  </button>
+  <div class="cachet">
+    <svg viewBox="0 0 24 24"><path d="M12 2c-4 3-7 6-7 10a7 7 0 0014 0c0-4-3-7-7-10z"/></svg>
+  </div>
+  <div class="titre">
+    <h1 id="titre-ecran">Baliste</h1>
+    <div class="sous" id="sous-titre">Mes listes</div>
+  </div>
+  <button class="icon-btn" id="btn-partage" style="display:none" title="Partager / fusionner">
+    <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
+  </button>
+  <button class="icon-btn" id="btn-imprimer" style="display:none" title="Imprimer">
+    <svg viewBox="0 0 24 24"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6z"/></svg>
+  </button>
+</header>
+
+<main>
+
+  <section class="ecran actif" id="ecran-listes">
+    <div id="corps-listes"></div>
+  </section>
+
+  <section class="ecran" id="ecran-liste">
+    <button class="btn btn-principal" id="btn-voir-triee" style="margin-bottom:16px; background:var(--encre-2);">Voir la liste triée / imprimer</button>
+    <div class="sec-titre">Groupes</div>
+    <div id="corps-groupes"></div>
+  </section>
+
+  <section class="ecran" id="ecran-groupe">
+    <button class="btn btn-photo" id="btn-scan-direct">
+      <svg viewBox="0 0 24 24"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+      Scanner en direct
+    </button>
+    <label class="lien-secours" for="input-photo">ou photographier une seule boîte</label>
+    <input type="file" id="input-photo" accept="image/*" capture="environment" style="position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;">
+    <div class="etat-ia" id="etat-ia"><div class="spinner"></div><span>Lecture des noms…</span></div>
+
+    <div class="ligne-ajout">
+      <input type="text" id="ajout-manuel" placeholder="Ou ajouter un nom manuellement">
+      <button id="btn-ajout-manuel">Ajouter</button>
+    </div>
+
+    <div id="zone-attente"></div>
+    <div id="zone-entrees"></div>
+  </section>
+
+  <section class="ecran" id="ecran-triee">
+    <div id="corps-triee"></div>
+  </section>
+
+</main>
+
+<div id="zone-impression">
+  <h1>Baliste</h1>
+  <div class="sstitre" id="impr-soustitre"></div>
+  <table>
+    <thead><tr><th>Nom</th><th>Groupe</th></tr></thead>
+    <tbody id="impr-corps"></tbody>
+  </table>
+</div>
+
+<button class="fab" id="fab" aria-label="Ajouter">
+  <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+</button>
+
+<footer class="info">Les données restent sur ce téléphone. Utilise "Partager / fusionner" en haut pour les combiner avec un autre facteur.</footer>
+
+<div class="voile" id="voile-partage">
+  <div class="feuille">
+    <div class="poignee"></div>
+    <h2>Partager / fusionner</h2>
+    <div class="champ">
+      <label>1. Mes données à envoyer</label>
+      <textarea id="txt-export" readonly style="width:100%; height:80px; border-radius:10px; border:1.5px solid var(--ligne); padding:10px; font-family:'IBM Plex Mono'; font-size:11.5px; background:var(--carte);"></textarea>
+      <button class="btn btn-principal" id="btn-copier" style="margin-top:8px;">Copier</button>
+    </div>
+    <div class="champ" style="margin-top:6px;">
+      <label>2. Coller les données reçues d'un autre facteur</label>
+      <textarea id="txt-import" placeholder="Colle ici le texte envoyé par l'autre facteur" style="width:100%; height:80px; border-radius:10px; border:1.5px solid var(--ligne); padding:10px; font-family:'IBM Plex Mono'; font-size:11.5px; background:var(--carte);"></textarea>
+      <button class="btn btn-principal" id="btn-fusionner" style="margin-top:8px; background:var(--vert);">Fusionner</button>
+    </div>
+  </div>
+</div>
+
+<div class="scan-overlay" id="scan-overlay">
+  <video id="video-scan" autoplay playsinline muted></video>
+  <canvas id="canvas-scan" style="display:none;"></canvas>
+
+  <div class="scan-haut">
+    <button class="icon-btn" id="btn-fermer-scan"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    <button class="scan-compteur" id="btn-tiroir-scan">0 ajouté</button>
+  </div>
+
+  <div class="scan-etat-flottant" id="scan-etat-flottant"><div class="spinner-clair"></div><span>Lecture…</span></div>
+
+  <div class="scan-puces" id="scan-puces"></div>
+
+  <div class="scan-bas">
+    <div class="scan-message" id="scan-message">Vise les boîtes, les noms détectés apparaissent ici. Touche un nom pour l'ajouter.</div>
+    <button class="btn-scan-manuel" id="btn-scan-manuel">Scanner maintenant</button>
+  </div>
+
+  <div class="scan-tiroir" id="scan-tiroir">
+    <div class="scan-tiroir-poignee" id="fermer-tiroir-scan"></div>
+    <div class="sec-titre" style="color:#fff;">Noms ajoutés dans ce groupe</div>
+    <div id="scan-tiroir-liste"></div>
+  </div>
+</div>
+
+<div class="voile" id="voile">
+  <div class="feuille">
+    <div class="poignee"></div>
+    <h2 id="titre-sheet">Nouvelle liste</h2>
+    <div class="champ">
+      <label id="label-sheet" for="f-sheet-nom">Nom</label>
+      <input type="text" id="f-sheet-nom" placeholder="Ex. Secteur Nord">
+    </div>
+    <button class="btn btn-principal" id="btn-sheet-valider">Créer</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+let listes = [], groupes = [], entrees = [];
+let ecranActuel = 'listes';
+let listeCourante = null;
+let groupeCourant = null;
+let enAttente = []; // noms détectés en attente de validation pour le groupe courant
+
+function toast(msg, type=""){
+  const t = $('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + type;
+  clearTimeout(t._h);
+  t._h = setTimeout(()=>t.classList.remove('show'), 2600);
+}
+function escHtml(s){
+  return (s||"").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function normaliser(s){
+  return (s||"").normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase();
+}
+function nouvelId(){ return Date.now() + '-' + Math.random().toString(36).slice(2,7); }
+
+// ---------- Stockage (local au téléphone) ----------
+async function chargerTout(){
+  try{ const v = localStorage.getItem('pf_listes'); listes = v ? JSON.parse(v) : []; }catch(e){ listes = []; }
+  try{ const v = localStorage.getItem('pf_groupes'); groupes = v ? JSON.parse(v) : []; }catch(e){ groupes = []; }
+  try{ const v = localStorage.getItem('pf_entrees'); entrees = v ? JSON.parse(v) : []; }catch(e){ entrees = []; }
+}
+async function sauverListes(){ try{ localStorage.setItem('pf_listes', JSON.stringify(listes)); return true; }catch(e){ toast("Échec de l'enregistrement.", 'err'); return false; } }
+async function sauverGroupes(){ try{ localStorage.setItem('pf_groupes', JSON.stringify(groupes)); return true; }catch(e){ toast("Échec de l'enregistrement.", 'err'); return false; } }
+async function sauverEntrees(){ try{ localStorage.setItem('pf_entrees', JSON.stringify(entrees)); return true; }catch(e){ toast("Échec de l'enregistrement.", 'err'); return false; } }
+async function sauverTout(){ return (await sauverListes()) && (await sauverGroupes()) && (await sauverEntrees()); }
+
+// ---------- Partage / fusion entre facteurs ----------
+function ouvrirPartage(){
+  $('txt-export').value = JSON.stringify({ listes, groupes, entrees });
+  $('txt-import').value = '';
+  $('voile-partage').classList.add('ouvert');
+}
+function fermerPartage(){ $('voile-partage').classList.remove('ouvert'); }
+$('voile-partage').addEventListener('click', (e)=>{ if(e.target.id==='voile-partage') fermerPartage(); });
+$('btn-partage').addEventListener('click', ouvrirPartage);
+
+$('btn-copier').addEventListener('click', async ()=>{
+  const texte = $('txt-export').value;
+  try{
+    await navigator.clipboard.writeText(texte);
+    toast('Copié ! Envoie ce texte à l\'autre facteur.', 'ok');
+  }catch(e){
+    $('txt-export').focus();
+    $('txt-export').select();
+    toast('Sélectionne le texte ci-dessus pour le copier.', '');
+  }
+});
+
+$('btn-fusionner').addEventListener('click', async ()=>{
+  const texte = $('txt-import').value.trim();
+  if(!texte){ toast('Colle d\'abord les données reçues.', 'err'); return; }
+  let obj;
+  try{ obj = JSON.parse(texte); }catch(e){ toast('Texte invalide, vérifie le collage.', 'err'); return; }
+  let ajouts = 0;
+  (obj.listes||[]).forEach(l => { if(!listes.some(x=>x.id===l.id)){ listes.push(l); ajouts++; } });
+  (obj.groupes||[]).forEach(g => { if(!groupes.some(x=>x.id===g.id)){ groupes.push(g); ajouts++; } });
+  (obj.entrees||[]).forEach(e => { if(!entrees.some(x=>x.id===e.id)){ entrees.push(e); ajouts++; } });
+  if(await sauverTout()){
+    fermerPartage();
+    afficherEcran(ecranActuel);
+    toast(ajouts + ' élément(s) fusionné(s).', 'ok');
+  }
+});
+
+function tamponner(){
+  const c = document.querySelector('.cachet');
+  c.animate([{transform:'scale(1)'},{transform:'scale(0.85)'},{transform:'scale(1)'}], {duration:280, easing:'ease-out'});
+}
+
+// ---------- Navigation ----------
+function afficherEcran(nom){
+  ecranActuel = nom;
+  document.querySelectorAll('.ecran').forEach(e => e.classList.remove('actif'));
+  $('ecran-' + nom).classList.add('actif');
+  $('btn-retour').style.display = nom === 'listes' ? 'none' : 'flex';
+  $('btn-imprimer').style.display = nom === 'triee' ? 'flex' : 'none';
+  $('btn-partage').style.display = nom === 'listes' ? 'flex' : 'none';
+  $('fab').style.display = (nom === 'listes' || nom === 'liste') ? 'flex' : 'none';
+
+  if(nom === 'listes'){ $('titre-ecran').textContent = 'Baliste'; $('sous-titre').textContent = 'Mes listes'; rendreListes(); }
+  if(nom === 'liste'){ const l = listes.find(x=>x.id===listeCourante); $('titre-ecran').textContent = l ? l.nom : ''; $('sous-titre').textContent = 'Groupes'; rendreGroupes(); }
+  if(nom === 'groupe'){ const g = groupes.find(x=>x.id===groupeCourant); $('titre-ecran').textContent = g ? g.nom : ''; $('sous-titre').textContent = 'Noms du groupe'; rendreGroupe(); }
+  if(nom === 'triee'){ const l = listes.find(x=>x.id===listeCourante); $('titre-ecran').textContent = l ? l.nom : ''; $('sous-titre').textContent = 'Liste triée'; rendreTriee(); }
+}
+
+$('btn-retour').addEventListener('click', ()=>{
+  if(scanActif) arreterScan();
+  if(ecranActuel === 'groupe') afficherEcran('liste');
+  else if(ecranActuel === 'liste') afficherEcran('listes');
+  else if(ecranActuel === 'triee') afficherEcran('liste');
+});
+
+// ---------- Écran Listes ----------
+function rendreListes(){
+  const c = $('corps-listes');
+  if(listes.length === 0){
+    c.innerHTML = `<div class="vide">
+      <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+      <p>Aucune liste pour l'instant. Touche le bouton jaune pour créer ta première liste.</p></div>`;
+    return;
+  }
+  c.innerHTML = listes.slice().sort((a,b)=>b.createdAt-a.createdAt).map(l=>{
+    const gr = groupes.filter(g=>g.listeId===l.id);
+    const nb = entrees.filter(e=>gr.some(g=>g.id===e.groupeId)).length;
+    return `<div class="carte" data-id="${l.id}">
+      <div><div class="nom">${escHtml(l.nom)}</div><div class="detail">${gr.length} groupe${gr.length>1?'s':''} · ${nb} nom${nb>1?'s':''}</div></div>
+      <svg class="chevron" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>
+    </div>`;
+  }).join('');
+  c.querySelectorAll('.carte').forEach(el=>{
+    el.addEventListener('click', ()=>{ listeCourante = el.dataset.id; afficherEcran('liste'); });
+  });
+}
+
+// ---------- Écran Liste (groupes) ----------
+function rendreGroupes(){
+  const c = $('corps-groupes');
+  const gr = groupes.filter(g=>g.listeId===listeCourante).sort((a,b)=>a.createdAt-b.createdAt);
+  if(gr.length === 0){
+    c.innerHTML = `<div class="vide">
+      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8z"/></svg>
+      <p>Aucun groupe. Touche le bouton jaune pour créer un groupe (ex. A, 3, batB, Pav1…).</p></div>`;
+    return;
+  }
+  c.innerHTML = gr.map(g=>{
+    const nb = entrees.filter(e=>e.groupeId===g.id).length;
+    return `<div class="carte" data-id="${g.id}">
+      <div><div class="nom">${escHtml(g.nom)}</div><div class="detail">${nb} nom${nb>1?'s':''}</div></div>
+      <svg class="chevron" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>
+    </div>`;
+  }).join('');
+  c.querySelectorAll('.carte').forEach(el=>{
+    el.addEventListener('click', ()=>{ groupeCourant = el.dataset.id; enAttente = []; puceCandidats = []; afficherEcran('groupe'); });
+  });
+}
+
+$('btn-voir-triee').addEventListener('click', ()=> afficherEcran('triee'));
+
+// ---------- Écran Groupe (entrées) ----------
+function rendreGroupe(){
+  rendreAttente();
+  const c = $('zone-entrees');
+  const liste = entrees.filter(e=>e.groupeId===groupeCourant);
+  if(liste.length === 0 && enAttente.length === 0){
+    c.innerHTML = `<div class="vide">
+      <svg viewBox="0 0 24 24"><path d="M4 8a2 2 0 012-2h1l1.5-2h7L17 6h1a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V8z"/><circle cx="12" cy="13" r="3.5"/></svg>
+      <p>Aucun nom pour l'instant. Scanne les boîtes en direct ou ajoute un nom manuellement.</p></div>`;
+  }else if(liste.length === 0){
+    c.innerHTML='';
+  }else{
+    c.innerHTML = '<div class="sec-titre">Noms enregistrés (' + liste.length + ')</div><div id="liste-entrees-int"></div>';
+    genererLigneEntrees($('liste-entrees-int'));
+  }
+  if(compteurScanCourant()) $('btn-tiroir-scan').textContent = compteurScanCourant() + ' ajouté' + (compteurScanCourant()>1?'s':'');
+}
+
+function compteurScanCourant(){
+  return entrees.filter(e=>e.groupeId===groupeCourant).length;
+}
+
+// Génère et branche les rangées de noms enregistrés dans un conteneur donné (réutilisé pour le tiroir de scan)
+function genererLigneEntrees(container){
+  const liste = entrees.filter(e=>e.groupeId===groupeCourant).sort((a,b)=>a.createdAt-b.createdAt);
+  container.innerHTML = liste.map(e => `
+    <div class="rangee-entree" data-id="${e.id}">
+      <span class="nom">${escHtml(e.nom)}</span>
+      <button class="icone-mini btn-editer" title="Modifier"><svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg></button>
+      <button class="icone-mini supp btn-supprimer-entree" title="Supprimer"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0l-1 14a2 2 0 01-2 2H7a2 2 0 01-2-2L4 6"/></svg></button>
+    </div>`).join('');
+
+  container.querySelectorAll('.btn-supprimer-entree').forEach(b=>{
+    b.addEventListener('click', async (ev)=>{
+      const id = ev.target.closest('.rangee-entree').dataset.id;
+      entrees = entrees.filter(x=>x.id!==id);
+      if(await sauverEntrees()){ toast('Nom supprimé.', 'ok'); rendreGroupe(); rendreListes(); if(scanActif) rendreTiroirScan(); }
+    });
+  });
+  container.querySelectorAll('.btn-editer').forEach(b=>{
+    b.addEventListener('click', (ev)=>{
+      const rangee = ev.target.closest('.rangee-entree');
+      const id = rangee.dataset.id;
+      const e = entrees.find(x=>x.id===id);
+      rangee.innerHTML = `
+        <input type="text" value="${escHtml(e.nom)}">
+        <button class="icone-mini btn-confirmer-edit" title="Valider"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></button>`;
+      const input = rangee.querySelector('input');
+      input.focus();
+      rangee.querySelector('.btn-confirmer-edit').addEventListener('click', async ()=>{
+        const val = input.value.trim();
+        if(!val){ toast('Le nom ne peut pas être vide.', 'err'); return; }
+        e.nom = val;
+        if(await sauverEntrees()){ toast('Nom modifié.', 'ok'); rendreGroupe(); if(scanActif) rendreTiroirScan(); }
+      });
+    });
+  });
+}
+
+function rendreAttente(){
+  const c = $('zone-attente');
+  if(enAttente.length === 0){ c.innerHTML=''; return; }
+  c.innerHTML = '<div class="sec-titre">À valider (' + enAttente.length + ')</div>' + enAttente.map(p => `
+    <div class="carte-attente" data-tid="${p.tid}">
+      <input type="text" value="${escHtml(p.nom)}">
+      <button class="action-ronde action-ok" title="Accepter"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></button>
+      <button class="action-ronde action-non" title="Supprimer"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </div>`).join('');
+
+  c.querySelectorAll('.carte-attente').forEach(el=>{
+    const tid = el.dataset.tid;
+    el.querySelector('.action-ok').addEventListener('click', async ()=>{
+      const val = el.querySelector('input').value.trim();
+      if(!val){ toast('Le nom ne peut pas être vide.', 'err'); return; }
+      entrees.push({ id: nouvelId(), groupeId: groupeCourant, nom: val, createdAt: Date.now() });
+      enAttente = enAttente.filter(p=>p.tid!==tid);
+      if(await sauverEntrees()){ tamponner(); rendreGroupe(); rendreListes(); }
+    });
+    el.querySelector('.action-non').addEventListener('click', ()=>{
+      enAttente = enAttente.filter(p=>p.tid!==tid);
+      rendreGroupe();
+    });
+  });
+}
+
+$('btn-ajout-manuel').addEventListener('click', async ()=>{
+  const input = $('ajout-manuel');
+  const val = input.value.trim();
+  if(!val) return;
+  entrees.push({ id: nouvelId(), groupeId: groupeCourant, nom: val, createdAt: Date.now() });
+  input.value = '';
+  if(await sauverEntrees()){ tamponner(); rendreGroupe(); rendreListes(); toast('Nom ajouté.', 'ok'); }
+});
+$('ajout-manuel').addEventListener('keydown', (e)=>{ if(e.key==='Enter') $('btn-ajout-manuel').click(); });
+
+// ---------- Photo + reconnaissance IA ----------
+$('input-photo').addEventListener('change', async (e)=>{
+  const fichier = e.target.files[0];
+  if(!fichier) return;
+
+  const dataUrl = await new Promise((res, rej)=>{
+    const r = new FileReader();
+    r.onload = () => res(r.result);
+    r.onerror = () => rej(new Error('Lecture impossible'));
+    r.readAsDataURL(fichier);
+  });
+
+  const base64 = dataUrl.split(',')[1];
+  const mediaType = fichier.type || 'image/jpeg';
+
+  $('etat-ia').style.display = 'flex';
+  try{
+    const noms = await reconnaitreNoms(base64, mediaType);
+    $('etat-ia').style.display = 'none';
+    if(noms.length === 0){
+      toast("Aucun nom lisible sur la photo.", 'err');
+    }else{
+      noms.forEach(n => enAttente.push({ tid: nouvelId(), nom: n }));
+      rendreGroupe();
+      toast(noms.length + ' nom(s) détecté(s), à valider ci-dessous.', '');
+    }
+  }catch(err){
+    $('etat-ia').style.display = 'none';
+    toast("La reconnaissance a échoué, ajoute le nom manuellement.", 'err');
+  }
+  e.target.value = '';
+});
+
+// ---------- Scan en direct (caméra continue) ----------
+let flotStream = null;
+let scanActif = false;
+let scanOccupe = false;
+let scanIntervalle = null;
+let puceCandidats = []; // {nom, ajoute:bool}
+
+$('btn-scan-direct').addEventListener('click', demarrerScan);
+$('btn-fermer-scan').addEventListener('click', arreterScan);
+$('btn-scan-manuel').addEventListener('click', ()=> scannerImage(true));
+$('btn-tiroir-scan').addEventListener('click', ()=>{
+  rendreTiroirScan();
+  $('scan-tiroir').classList.add('ouvert');
+});
+$('fermer-tiroir-scan').addEventListener('click', ()=> $('scan-tiroir').classList.remove('ouvert'));
+
+async function demarrerScan(){
+  puceCandidats = [];
+  $('scan-puces').innerHTML = '';
+  try{
+    flotStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+  }catch(err){
+    toast("Impossible d'accéder à la caméra. Essaie hors de l'aperçu du chat, dans Chrome.", 'err');
+    return;
+  }
+  const video = $('video-scan');
+  video.srcObject = flotStream;
+  scanActif = true;
+  $('scan-overlay').classList.add('actif');
+  $('btn-tiroir-scan').textContent = compteurScanCourant() + ' ajouté' + (compteurScanCourant()>1?'s':'');
+  await video.play().catch(()=>{});
+  scanIntervalle = setInterval(()=> scannerImage(false), 3200);
+  scannerImage(false);
+}
+
+function arreterScan(){
+  scanActif = false;
+  clearInterval(scanIntervalle);
+  scanIntervalle = null;
+  if(flotStream){ flotStream.getTracks().forEach(t=>t.stop()); flotStream = null; }
+  $('scan-overlay').classList.remove('actif');
+  $('scan-tiroir').classList.remove('ouvert');
+  rendreGroupe();
+  rendreListes();
+}
+
+async function scannerImage(manuel){
+  if(scanOccupe || !scanActif) return;
+  const video = $('video-scan');
+  if(!video.videoWidth) return;
+  scanOccupe = true;
+  $('scan-etat-flottant').style.display = 'flex';
+
+  const canvas = $('canvas-scan');
+  const largeurCible = 900;
+  const ratio = video.videoHeight / video.videoWidth;
+  canvas.width = largeurCible;
+  canvas.height = Math.round(largeurCible * ratio);
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  const base64 = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
+
+  try{
+    const noms = await reconnaitreNoms(base64, 'image/jpeg');
+    ajouterCandidats(noms);
+    if(manuel && noms.length === 0) toast('Aucun nom lisible sur cette image.', '');
+  }catch(err){
+    if(manuel) toast('La lecture a échoué, réessaie.', 'err');
+  }
+  scanOccupe = false;
+  $('scan-etat-flottant').style.display = 'none';
+}
+
+function ajouterCandidats(noms){
+  const dejaEnregistres = new Set(entrees.filter(e=>e.groupeId===groupeCourant).map(e=>normaliser(e.nom)));
+  const dejaAffiches = new Set(puceCandidats.map(p=>normaliser(p.nom)));
+  noms.forEach(n=>{
+    const norm = normaliser(n);
+    if(!dejaEnregistres.has(norm) && !dejaAffiches.has(norm)){
+      puceCandidats.push({ nom: n });
+      dejaAffiches.add(norm);
+    }
+  });
+  rendrePucesScan();
+}
+
+function rendrePucesScan(){
+  const c = $('scan-puces');
+  c.innerHTML = puceCandidats.map((p,i) => `<button class="scan-puce" data-i="${i}">${escHtml(p.nom)}</button>`).join('');
+  c.querySelectorAll('.scan-puce').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const i = parseInt(btn.dataset.i, 10);
+      const p = puceCandidats[i];
+      if(!p) return;
+      entrees.push({ id: nouvelId(), groupeId: groupeCourant, nom: p.nom, createdAt: Date.now() });
+      puceCandidats.splice(i, 1);
+      await sauverEntrees();
+      tamponner();
+      rendrePucesScan();
+      $('btn-tiroir-scan').textContent = compteurScanCourant() + ' ajouté' + (compteurScanCourant()>1?'s':'');
+      if($('scan-tiroir').classList.contains('ouvert')) rendreTiroirScan();
+    });
+  });
+}
+
+function rendreTiroirScan(){
+  const cont = $('scan-tiroir-liste');
+  const liste = entrees.filter(e=>e.groupeId===groupeCourant);
+  if(liste.length === 0){
+    cont.innerHTML = '<p style="color:#c9c2ae; font-size:13px;">Aucun nom ajouté pour l\'instant.</p>';
+    return;
+  }
+  genererLigneEntrees(cont);
+}
+
+async function reconnaitreNoms(base64Image, mediaType){
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-6",
+      max_tokens: 500,
+      messages: [{
+        role: "user",
+        content: [
+          { type: "image", source: { type: "base64", media_type: mediaType, data: base64Image } },
+          { type: "text", text: "Cette photo montre une ou plusieurs boîtes aux lettres. Lis le ou les noms de famille qui y sont écrits, manuscrits ou imprimés. Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant ni après, sans balises markdown, exactement au format : {\"noms\": [\"NOM1\", \"NOM2\"]}. Mets les noms en majuscules, un nom par élément, sans doublons. Si rien n'est lisible, réponds {\"noms\": []}." }
+        ]
+      }]
+    })
+  });
+  const data = await response.json();
+  const texte = (data.content || []).map(b => b.text || '').join('');
+  const nettoye = texte.replace(/```json|```/g, '').trim();
+  const parsed = JSON.parse(nettoye);
+  return Array.isArray(parsed.noms) ? parsed.noms.filter(Boolean) : [];
+}
+
+// ---------- Écran Vue triée / impression ----------
+function rendreTriee(){
+  const gr = groupes.filter(g=>g.listeId===listeCourante);
+  let liste = entrees.filter(e=>gr.some(g=>g.id===e.groupeId)).map(e=>({
+    nom: e.nom, groupe: (gr.find(g=>g.id===e.groupeId)||{}).nom || ''
+  }));
+  liste.sort((a,b)=>normaliser(a.nom).localeCompare(normaliser(b.nom)));
+
+  const c = $('corps-triee');
+  if(liste.length === 0){
+    c.innerHTML = `<div class="vide"><p>Aucun nom dans cette liste pour l'instant.</p></div>`;
+  }else{
+    let html = ''; let derniereLettre = '';
+    liste.forEach(e=>{
+      const lettre = normaliser(e.nom).charAt(0) || '#';
+      if(lettre !== derniereLettre){ html += `<div class="lettre-sep">${lettre}</div>`; derniereLettre = lettre; }
+      html += `<div class="ligne-triee"><span>${escHtml(e.nom)}</span><span class="grp">${escHtml(e.groupe)}</span></div>`;
+    });
+    c.innerHTML = html;
+  }
+
+  $('impr-soustitre').textContent = liste.length + ' nom(s) — ' + new Date().toLocaleDateString('fr-FR');
+  $('impr-corps').innerHTML = liste.map(e => `<tr><td>${escHtml(e.nom)}</td><td>${escHtml(e.groupe)}</td></tr>`).join('');
+}
+
+$('btn-imprimer').addEventListener('click', ()=> window.print());
+
+// ---------- Sheet générique (nouvelle liste / nouveau groupe) ----------
+let sheetMode = null; // 'liste' ou 'groupe'
+
+function ouvrirSheet(mode){
+  sheetMode = mode;
+  $('titre-sheet').textContent = mode === 'liste' ? 'Nouvelle liste' : 'Nouveau groupe';
+  $('label-sheet').textContent = mode === 'liste' ? 'Nom de la liste' : 'Nom du groupe';
+  $('f-sheet-nom').placeholder = mode === 'liste' ? 'Ex. Secteur Nord' : 'Ex. A, 3, batB, Pav1…';
+  $('f-sheet-nom').value = '';
+  $('voile').classList.add('ouvert');
+  setTimeout(()=>$('f-sheet-nom').focus(), 200);
+}
+function fermerSheet(){ $('voile').classList.remove('ouvert'); }
+$('voile').addEventListener('click', (e)=>{ if(e.target.id==='voile') fermerSheet(); });
+
+$('fab').addEventListener('click', ()=>{
+  if(ecranActuel === 'listes') ouvrirSheet('liste');
+  else if(ecranActuel === 'liste') ouvrirSheet('groupe');
+});
+
+$('btn-sheet-valider').addEventListener('click', async ()=>{
+  const val = $('f-sheet-nom').value.trim();
+  if(!val){ toast('Indique un nom.', 'err'); return; }
+  if(sheetMode === 'liste'){
+    const l = { id: nouvelId(), nom: val, createdAt: Date.now() };
+    listes.push(l);
+    if(await sauverListes()){ fermerSheet(); listeCourante = l.id; afficherEcran('liste'); toast('Liste créée.', 'ok'); }
+  }else{
+    const g = { id: nouvelId(), listeId: listeCourante, nom: val, createdAt: Date.now() };
+    groupes.push(g);
+    if(await sauverGroupes()){ fermerSheet(); groupeCourant = g.id; enAttente = []; afficherEcran('groupe'); toast('Groupe créé.', 'ok'); }
+  }
+});
+$('f-sheet-nom').addEventListener('keydown', (e)=>{ if(e.key==='Enter') $('btn-sheet-valider').click(); });
+
+// ---------- Démarrage ----------
+(async function init(){
+  await chargerTout();
+  afficherEcran('listes');
+})();
+</script>
+</body>
+</html>
