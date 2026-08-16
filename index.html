@@ -669,6 +669,7 @@ let scanActif = false;
 let scanOccupe = false;
 let scanIntervalle = null;
 let puceCandidats = []; // {nom, ajoute:bool}
+let erreurContinue = false;
 
 $('btn-scan-direct').addEventListener('click', demarrerScan);
 $('btn-fermer-scan').addEventListener('click', arreterScan);
@@ -725,12 +726,13 @@ async function scannerImage(manuel){
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
   const base64 = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
 
-  try{
+try{
     const noms = await reconnaitreNoms(base64, 'image/jpeg');
+    erreurContinue = false;
     ajouterCandidats(noms);
     if(manuel && noms.length === 0) toast('Aucun nom lisible sur cette image.', '');
   }catch(err){
-    if(manuel) toast('La lecture a échoué, réessaie.', 'err');
+    if(manuel || !erreurContinue){ toast('Erreur : ' + (err.message || 'inconnue'), 'err'); erreurContinue = true; }
   }
   scanOccupe = false;
   $('scan-etat-flottant').style.display = 'none';
