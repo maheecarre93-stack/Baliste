@@ -236,8 +236,9 @@
   .scan-message{color:#e4e0d3; font-size:12.5px; margin-bottom:10px; line-height:1.4;}
   .btn-scan-manuel{
     background:var(--jaune); color:var(--encre); border:none; border-radius:24px;
-    padding:13px 28px; font-weight:700; font-size:14.5px;
+    padding:13px 28px; font-weight:700; font-size:14.5px; transition:background 0.15s, color 0.15s;
   }
+  .btn-scan-manuel.pause{background:rgba(255,255,255,0.12); color:#c9c2ae; border:1.5px solid rgba(255,255,255,0.3);}
   .scan-tiroir{
     position:absolute; left:0; right:0; bottom:0; background:var(--encre); z-index:3;
     border-radius:18px 18px 0 0; padding:6px 16px calc(20px + env(safe-area-inset-bottom));
@@ -723,10 +724,25 @@ let scanOccupe = false;
 let scanIntervalle = null;
 let puceCandidats = []; // {nom, ajoute:bool}
 let erreurContinue = false;
+let autoScanActif = true; // le scan automatique en continu tourne ou est en pause
 
 $('btn-scan-direct').addEventListener('click', ()=>{ if(scanActif) arreterScan(); else demarrerScan(); });
 $('btn-fermer-scan').addEventListener('click', arreterScan);
-$('btn-scan-manuel').addEventListener('click', ()=> scannerImage(true));
+$('btn-scan-manuel').addEventListener('click', ()=>{
+  if(autoScanActif){
+    autoScanActif = false;
+    clearInterval(scanIntervalle);
+    scanIntervalle = null;
+    $('btn-scan-manuel').classList.add('pause');
+    $('btn-scan-manuel').textContent = 'Scan en pause — toucher pour reprendre';
+  }else{
+    autoScanActif = true;
+    $('btn-scan-manuel').classList.remove('pause');
+    $('btn-scan-manuel').textContent = 'Scanner maintenant';
+    scanIntervalle = setInterval(()=> scannerImage(false), 3200);
+    scannerImage(true);
+  }
+});
 $('btn-tiroir-scan').addEventListener('click', ()=>{
   rendreTiroirScan();
   $('scan-tiroir').classList.add('ouvert');
@@ -736,6 +752,9 @@ $('fermer-tiroir-scan').addEventListener('click', ()=> $('scan-tiroir').classLis
 async function demarrerScan(){
   puceCandidats = [];
   $('scan-puces').innerHTML = '';
+  autoScanActif = true;
+  $('btn-scan-manuel').classList.remove('pause');
+  $('btn-scan-manuel').textContent = 'Scanner maintenant';
   try{
     flotStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
   }catch(err){
