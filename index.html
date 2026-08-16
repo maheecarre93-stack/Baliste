@@ -209,6 +209,18 @@
     background:rgba(20,25,38,0.6); border:1px solid rgba(255,255,255,0.25); color:#fff;
     border-radius:20px; padding:8px 16px; font-size:13px; font-weight:600; font-family:'IBM Plex Sans';
   }
+  .scan-groupe-droite{display:flex; align-items:center; gap:9px;}
+  .scan-indicateur{
+    width:11px; height:11px; border-radius:50%; flex-shrink:0;
+    background:var(--jaune); box-shadow:0 0 0 0 rgba(232,163,61,0.55);
+    animation:pulse-scan 1.6s ease-out infinite;
+  }
+  .scan-indicateur.pause{background:rgba(255,255,255,0.35); animation:none; box-shadow:none;}
+  @keyframes pulse-scan{
+    0%{box-shadow:0 0 0 0 rgba(232,163,61,0.55);}
+    70%{box-shadow:0 0 0 9px rgba(232,163,61,0);}
+    100%{box-shadow:0 0 0 0 rgba(232,163,61,0);}
+  }
   .scan-etat-flottant{
     position:relative; z-index:2; margin:0 auto; display:none; align-items:center; gap:9px;
     background:rgba(20,25,38,0.75); color:#fff; padding:9px 15px; border-radius:20px; font-size:13px; width:fit-content;
@@ -235,10 +247,10 @@
   }
   .scan-message{color:#e4e0d3; font-size:12.5px; margin-bottom:10px; line-height:1.4;}
   .btn-scan-manuel{
-    background:var(--jaune); color:var(--encre); border:none; border-radius:24px;
+    background:rgba(255,255,255,0.12); color:#c9c2ae; border:1.5px solid rgba(255,255,255,0.3); border-radius:24px;
     padding:13px 28px; font-weight:700; font-size:14.5px; transition:background 0.15s, color 0.15s;
   }
-  .btn-scan-manuel.pause{background:rgba(255,255,255,0.12); color:#c9c2ae; border:1.5px solid rgba(255,255,255,0.3);}
+  .btn-scan-manuel.pause{background:var(--jaune); color:var(--encre); border:none;}
   .scan-tiroir{
     position:absolute; left:0; right:0; bottom:0; background:var(--encre); z-index:3;
     border-radius:18px 18px 0 0; padding:6px 16px calc(20px + env(safe-area-inset-bottom));
@@ -365,7 +377,10 @@
 
   <div class="scan-haut">
     <button class="icon-btn" id="btn-fermer-scan"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-    <button class="scan-compteur" id="btn-tiroir-scan">0 ajouté</button>
+    <div class="scan-groupe-droite">
+      <span class="scan-indicateur" id="scan-indicateur" title="Scan en cours"></span>
+      <button class="scan-compteur" id="btn-tiroir-scan">0 ajouté</button>
+    </div>
   </div>
 
   <div class="scan-etat-flottant" id="scan-etat-flottant"><div class="spinner-clair"></div><span>Lecture…</span></div>
@@ -374,7 +389,7 @@
 
   <div class="scan-bas">
     <div class="scan-message" id="scan-message">Vise les boîtes, les noms détectés apparaissent ici. Glisse un nom vers le bas pour l'ajouter, vers le haut pour l'effacer.</div>
-    <button class="btn-scan-manuel" id="btn-scan-manuel">Scanner maintenant</button>
+    <button class="btn-scan-manuel" id="btn-scan-manuel">Mettre en pause</button>
   </div>
 
   <div class="scan-tiroir" id="scan-tiroir">
@@ -734,11 +749,13 @@ $('btn-scan-manuel').addEventListener('click', ()=>{
     clearInterval(scanIntervalle);
     scanIntervalle = null;
     $('btn-scan-manuel').classList.add('pause');
-    $('btn-scan-manuel').textContent = 'Scan en pause — toucher pour reprendre';
+    $('btn-scan-manuel').textContent = 'Reprendre le scan';
+    $('scan-indicateur').classList.add('pause');
   }else{
     autoScanActif = true;
     $('btn-scan-manuel').classList.remove('pause');
-    $('btn-scan-manuel').textContent = 'Scanner maintenant';
+    $('btn-scan-manuel').textContent = 'Mettre en pause';
+    $('scan-indicateur').classList.remove('pause');
     scanIntervalle = setInterval(()=> scannerImage(false), 3200);
     scannerImage(true);
   }
@@ -754,7 +771,8 @@ async function demarrerScan(){
   $('scan-puces').innerHTML = '';
   autoScanActif = true;
   $('btn-scan-manuel').classList.remove('pause');
-  $('btn-scan-manuel').textContent = 'Scanner maintenant';
+  $('btn-scan-manuel').textContent = 'Mettre en pause';
+  $('scan-indicateur').classList.remove('pause');
   try{
     flotStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
   }catch(err){
@@ -833,19 +851,24 @@ function rendrePucesScan(){
   const c = $('scan-puces');
   c.innerHTML = puceCandidats.map((p,i) => `<button class="scan-puce" data-i="${i}">${escHtml(p.nom)}</button>`).join('');
   c.querySelectorAll('.scan-puce').forEach(btn=>{
-    let depart = null, dy = 0;
+    let depart = null, dx = 0, dy = 0;
 
     btn.addEventListener('pointerdown', (e)=>{
-      depart = e.clientY; dy = 0;
+      depart = { x: e.clientX, y: e.clientY }; dx = 0; dy = 0;
       btn.classList.add('glisse');
       btn.setPointerCapture(e.pointerId);
     });
     btn.addEventListener('pointermove', (e)=>{
       if(depart === null) return;
-      dy = e.clientY - depart;
-      btn.style.transform = `translateY(${dy}px)`;
-      btn.classList.toggle('dir-ajout', dy >= SEUIL_GLISSE);
-      btn.classList.toggle('dir-retrait', dy <= -SEUIL_GLISSE);
+      dx = e.clientX - depart.x;
+      dy = e.clientY - depart.y;
+      btn.style.transform = `translate(${dx}px, ${dy}px)`;
+      // axe dominant : vertical vers le bas ajoute, tout le reste (haut/gauche/droite) efface
+      const horizontal = Math.abs(dx) >= Math.abs(dy);
+      const versLeBas = !horizontal && dy > 0;
+      const distance = Math.max(Math.abs(dx), Math.abs(dy));
+      btn.classList.toggle('dir-ajout', versLeBas && distance >= SEUIL_GLISSE);
+      btn.classList.toggle('dir-retrait', !versLeBas && distance >= SEUIL_GLISSE);
     });
 
     const finGlisse = async ()=>{
@@ -856,7 +879,11 @@ function rendrePucesScan(){
       const p = puceCandidats[i];
       if(!p) return;
 
-      if(Math.abs(dy) < SEUIL_TAP || dy >= SEUIL_GLISSE){
+      const horizontal = Math.abs(dx) >= Math.abs(dy);
+      const distance = Math.max(Math.abs(dx), Math.abs(dy));
+      const versLeBas = !horizontal && dy > 0;
+
+      if(distance < SEUIL_TAP || (versLeBas && distance >= SEUIL_GLISSE)){
         // tap ou glissé vers le bas -> ajouter à la liste
         btn.classList.add('envol');
         btn.style.transform = 'translateY(120px)';
@@ -867,17 +894,17 @@ function rendrePucesScan(){
         $('btn-tiroir-scan').textContent = compteurScanCourant() + ' ajouté' + (compteurScanCourant()>1?'s':'');
         if($('scan-tiroir').classList.contains('ouvert')) rendreTiroirScan();
         setTimeout(rendrePucesScan, 170);
-      }else if(dy <= -SEUIL_GLISSE){
-        // glissé vers le haut -> effacer l'affichage sans l'ajouter
+      }else if(!versLeBas && distance >= SEUIL_GLISSE){
+        // glissé vers le haut, la gauche ou la droite -> effacer l'affichage sans l'ajouter
         btn.classList.add('envol');
-        btn.style.transform = 'translateY(-120px)';
+        btn.style.transform = horizontal ? `translateX(${dx > 0 ? 160 : -160}px)` : 'translateY(-120px)';
         puceCandidats.splice(i, 1);
         setTimeout(rendrePucesScan, 170);
       }else{
-        // relâché entre les deux seuils -> revient à sa place
+        // relâché sous le seuil -> revient à sa place
         btn.classList.add('retour');
         btn.classList.remove('dir-ajout','dir-retrait');
-        btn.style.transform = 'translateY(0)';
+        btn.style.transform = 'translate(0, 0)';
       }
     };
     btn.addEventListener('pointerup', finGlisse);
