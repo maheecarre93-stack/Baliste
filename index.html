@@ -161,6 +161,16 @@
   }
   .rangee-entree .nom{flex:1; font-weight:500; font-size:14.5px;}
   .rangee-entree input{flex:1; padding:8px 9px; border-radius:8px; border:1.5px solid var(--jaune); font-size:14.5px;}
+  .badge-numero{
+    font-family:'IBM Plex Mono'; font-weight:600; font-size:12.5px; color:#5c5544;
+    background:#f1ece0; padding:4px 9px; border-radius:7px; flex-shrink:0;
+  }
+  .rangee-entree input.f-numero{ flex:0 0 70px; }
+
+  .lien-numerotation{
+    display:block; width:100%; text-align:left; background:#fdf6ea; border:1.5px dashed var(--jaune);
+    border-radius:10px; padding:9px 12px; margin-bottom:14px; font-size:12.5px; color:#5c5544; font-weight:500;
+  }
   .icone-mini{
     width:32px; height:32px; border-radius:8px; border:none; background:#f1ece0;
     display:flex; align-items:center; justify-content:center; flex-shrink:0;
@@ -192,6 +202,89 @@
     display:block; text-align:center; font-size:12.5px; color:#7a7362; text-decoration:underline;
     margin:2px 0 16px; padding:4px;
   }
+
+  /* ---- Réglages d'impression ---- */
+  .segments{ display:flex; gap:6px; }
+  .segments button{
+    flex:1; padding:10px 0; border-radius:9px; border:1.5px solid var(--ligne);
+    background:var(--carte); font-weight:600; font-size:14.5px; color:var(--anthracite);
+  }
+  .segments button.actif{ background:var(--jaune); border-color:var(--jaune); color:var(--encre); }
+  .toggle-ligne{
+    display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:14px;
+  }
+  .toggle-ligne label{
+    font-size:14.5px; font-weight:500; color:var(--anthracite);
+    text-transform:none; letter-spacing:0; flex:1;
+  }
+  .toggle-switch{
+    appearance:none; -webkit-appearance:none; width:44px; height:26px; background:#ddd6c4;
+    border-radius:20px; position:relative; flex-shrink:0; transition:background 0.15s; margin:0;
+  }
+  .toggle-switch::before{
+    content:""; position:absolute; top:3px; left:3px; width:20px; height:20px;
+    background:#fff; border-radius:50%; transition:transform 0.15s; box-shadow:0 1px 3px rgba(0,0,0,0.25);
+  }
+  .toggle-switch:checked{ background:var(--jaune); }
+  .toggle-switch:checked::before{ transform:translateX(18px); }
+
+  /* ---- Aperçu avant impression ---- */
+  .apercu-overlay{
+    position:fixed; inset:0; background:var(--papier); z-index:70;
+    display:none; flex-direction:column;
+  }
+  .apercu-overlay.actif{ display:flex; }
+  .apercu-haut{
+    display:flex; align-items:center; gap:10px; flex-shrink:0;
+    padding: max(14px, env(safe-area-inset-top)) 14px 12px;
+    background:var(--encre); box-shadow:var(--ombre);
+  }
+  .apercu-haut .apercu-titre{
+    flex:1; color:#fff; font-family:'Oswald'; font-size:14px;
+    text-transform:uppercase; letter-spacing:0.04em;
+  }
+  .btn-imprimer-final{
+    background:var(--jaune); color:var(--encre); border:none; border-radius:10px;
+    padding:9px 16px; font-weight:700; font-size:13.5px; display:flex; align-items:center; gap:6px; flex-shrink:0;
+  }
+  .btn-imprimer-final svg{ width:16px; height:16px; stroke:var(--encre); fill:none; stroke-width:2.2; }
+  .apercu-reglages{
+    background:var(--carte); border-bottom:1px solid var(--ligne); padding:14px 16px 4px;
+    max-height:44vh; overflow-y:auto; flex-shrink:0;
+  }
+  .apercu-page-scroll{ flex:1; overflow:auto; padding:16px; -webkit-overflow-scrolling:touch; }
+  .apercu-page{
+    background:#fff; color:#161616; margin:0 auto; padding:16px 14px;
+    border-radius:6px; box-shadow:0 3px 16px rgba(28,43,69,0.2);
+    min-width:540px; max-width:900px;
+  }
+  .apercu-page h1{ font-family:'Oswald'; font-size:17px; margin:0 0 2px; }
+  .apercu-page .sstitre{ font-size:11px; color:#555; margin-bottom:12px; text-transform:none; letter-spacing:0; }
+
+  .apercu-page .impr-colonnes{ display:flex; gap:16px; align-items:flex-start; }
+  .apercu-page .impr-col{ flex:1; min-width:0; }
+  .apercu-page .impr-lettre{
+    font-family:'Oswald'; font-weight:700; font-size:11px; text-transform:uppercase;
+    letter-spacing:0.04em; color:#888; margin:8px 0 2px;
+  }
+  .apercu-page .impr-ligne{
+    display:flex; justify-content:space-between; align-items:baseline; gap:6px;
+    font-size:12.5px; line-height:1.4; padding:2px 3px;
+  }
+  .apercu-page .impr-ligne .nom{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .apercu-page .impr-ligne .grp{ color:#666; font-family:'IBM Plex Mono'; font-size:11px; flex-shrink:0; }
+  .apercu-page .impr-ligne .leader{
+    flex:1; min-width:8px; height:2px; align-self:flex-end; margin:0 3px 4px;
+    background-image:linear-gradient(to right, #999 35%, transparent 0%);
+    background-size:4px 2px; background-repeat:repeat-x; background-position:left bottom;
+  }
+  .apercu-page .impr-ligne.impair{ color:#888; }
+  .apercu-page table.impr-table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+  .apercu-page table.impr-table td{ padding:3px 6px; border:1px solid #999; }
+  .apercu-page table.impr-table td.nom{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .apercu-page table.impr-table td.grp{ font-family:'IBM Plex Mono'; font-size:11px; color:#666; text-align:right; white-space:nowrap; }
+  .apercu-page table.impr-table tr.impair td{ background:#eee; }
+  .apercu-page table.impr-table td.impr-lettre{ border:none; }
 
   /* ---- Scan en direct ---- */
   .scan-overlay{
@@ -268,17 +361,41 @@
 
   #zone-impression{display:none;}
   @media print{
-    header, .fab, .voile, footer.info, .toast, .scan-overlay{display:none !important;}
+    @page{ margin:9mm; }
+    header, .fab, .voile, footer.info, .toast, .scan-overlay, .apercu-overlay{display:none !important;}
     #ecran-triee .btn-photo, #ecran-triee button{display:none !important;}
     main > .ecran{display:none !important;}
     body{background:#fff;}
-    #zone-impression{ display:block; padding:0 10px; font-family:'IBM Plex Sans', sans-serif; color:#000; }
-    #zone-impression h1{font-family:'Oswald'; font-size:20px; margin-bottom:2px;}
-    #zone-impression .sstitre{font-size:12px; color:#444; margin-bottom:16px;}
-    #zone-impression table{width:100%; border-collapse:collapse; font-size:12px;}
-    #zone-impression th{ text-align:left; border-bottom:1.5px solid #000; padding:6px 8px; font-family:'Oswald'; text-transform:uppercase; font-size:10.5px; letter-spacing:0.03em; }
-    #zone-impression td{border-bottom:0.5px solid #ccc; padding:6px 8px;}
-    #zone-impression tr{break-inside:avoid;}
+    #zone-impression{ display:block; padding:0; font-family:'IBM Plex Sans', sans-serif; color:#000; }
+    #zone-impression h1{font-family:'Oswald'; font-size:15px; margin:-3px 0 1px; text-align:center;}
+    #zone-impression .sstitre{font-size:9.5px; color:#444; margin-bottom:6px; text-align:center;}
+
+    #zone-impression .impr-colonnes{ display:flex; gap:10px; align-items:flex-start; }
+    #zone-impression .impr-col{ flex:1; min-width:0; }
+
+    #zone-impression .impr-lettre{
+      font-family:'Oswald'; font-weight:700; font-size:9px; text-transform:uppercase;
+      letter-spacing:0.04em; color:#666; margin:4px 0 1px; break-inside:avoid; break-after:avoid;
+    }
+    #zone-impression .impr-ligne{
+      display:flex; justify-content:space-between; align-items:baseline; gap:4px;
+      font-size:9px; line-height:1.3; padding:1px 2px; break-inside:avoid;
+    }
+    #zone-impression .impr-ligne .nom{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+    #zone-impression .impr-ligne .grp{ color:#555; font-family:'IBM Plex Mono'; font-size:8.5px; flex-shrink:0; }
+    #zone-impression .impr-ligne .leader{
+      flex:1; min-width:6px; height:1.5px; align-self:flex-end; margin:0 2px 3px;
+      background-image:linear-gradient(to right, #999 35%, transparent 0%);
+      background-size:3px 1.5px; background-repeat:repeat-x; background-position:left bottom;
+    }
+    #zone-impression .impr-ligne.impair{ color:#777; }
+
+    #zone-impression table.impr-table{ width:100%; border-collapse:collapse; font-size:9px; table-layout:fixed; }
+    #zone-impression table.impr-table td{ padding:1.5px 4px; border:0.75px solid #999; }
+    #zone-impression table.impr-table td.nom{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    #zone-impression table.impr-table td.grp{ font-family:'IBM Plex Mono'; font-size:8.5px; color:#555; text-align:right; white-space:nowrap; width:34%; }
+    #zone-impression table.impr-table tr.impair td{ background:#ececec; }
+    #zone-impression table.impr-table td.impr-lettre{ padding-top:5px; border:none; }
   }
 </style>
 </head>
@@ -298,7 +415,7 @@
   <button class="icon-btn" id="btn-partage" style="display:none" title="Partager / fusionner">
     <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
   </button>
-  <button class="icon-btn" id="btn-imprimer" style="display:none" title="Imprimer">
+  <button class="icon-btn" id="btn-imprimer" style="display:none" title="Aperçu avant impression">
     <svg viewBox="0 0 24 24"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6z"/></svg>
   </button>
 </header>
@@ -329,6 +446,8 @@
       <button id="btn-ajout-manuel">Ajouter</button>
     </div>
 
+    <div class="lien-numerotation" id="bandeau-numerotation" style="display:none;"></div>
+
     <div id="zone-attente"></div>
     <div id="zone-entrees"></div>
   </section>
@@ -340,12 +459,9 @@
 </main>
 
 <div id="zone-impression">
-  <h1>Baliste</h1>
+  <h1 id="impr-titre">Baliste</h1>
   <div class="sstitre" id="impr-soustitre"></div>
-  <table>
-    <thead><tr><th>Nom</th><th>Groupe</th></tr></thead>
-    <tbody id="impr-corps"></tbody>
-  </table>
+  <div class="impr-liste" id="impr-liste"></div>
 </div>
 
 <button class="fab" id="fab" aria-label="Ajouter">
@@ -367,6 +483,50 @@
       <label>2. Coller les données reçues d'un autre facteur</label>
       <textarea id="txt-import" placeholder="Colle ici le texte envoyé par l'autre facteur" style="width:100%; height:80px; border-radius:10px; border:1.5px solid var(--ligne); padding:10px; font-family:'IBM Plex Mono'; font-size:11.5px; background:var(--carte);"></textarea>
       <button class="btn btn-principal" id="btn-fusionner" style="margin-top:8px; background:var(--vert);">Fusionner</button>
+    </div>
+  </div>
+</div>
+
+<div class="apercu-overlay" id="apercu-overlay">
+  <div class="apercu-haut">
+    <button class="icon-btn" id="btn-fermer-apercu"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    <div class="apercu-titre">Aperçu avant impression</div>
+    <button class="btn-imprimer-final" id="btn-imprimer-final">
+      <svg viewBox="0 0 24 24"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6z"/></svg>
+      Imprimer
+    </button>
+  </div>
+
+  <div class="apercu-reglages">
+    <div class="champ" style="margin-bottom:10px;">
+      <label>Nombre de colonnes</label>
+      <div class="segments" id="segments-colonnes">
+        <button type="button" data-val="1">1</button>
+        <button type="button" data-val="2">2</button>
+        <button type="button" data-val="3">3</button>
+        <button type="button" data-val="4">4</button>
+      </div>
+    </div>
+
+    <div class="toggle-ligne">
+      <label for="tg-lettres">Séparateurs de lettres (A, B, C…)</label>
+      <input type="checkbox" class="toggle-switch" id="tg-lettres">
+    </div>
+    <div class="toggle-ligne">
+      <label for="tg-tableau">Mise en page en tableau</label>
+      <input type="checkbox" class="toggle-switch" id="tg-tableau">
+    </div>
+    <div class="toggle-ligne" style="margin-bottom:0;">
+      <label for="tg-alternance">Alterner les couleurs par ligne</label>
+      <input type="checkbox" class="toggle-switch" id="tg-alternance">
+    </div>
+  </div>
+
+  <div class="apercu-page-scroll">
+    <div class="apercu-page" id="apercu-page">
+      <h1 id="apercu-titre-doc">Baliste</h1>
+      <div class="sstitre" id="apercu-soustitre"></div>
+      <div id="apercu-liste"></div>
     </div>
   </div>
 </div>
@@ -403,10 +563,34 @@
   <div class="feuille">
     <div class="poignee"></div>
     <h2 id="titre-sheet">Nouvelle liste</h2>
+
+    <div class="champ" id="champ-type-groupe" style="display:none;">
+      <label>Type de groupe</label>
+      <div class="segments" id="segments-type-groupe">
+        <button type="button" data-val="normal">Normal</button>
+        <button type="button" data-val="incrementiel">Incrémentiel</button>
+      </div>
+    </div>
+
     <div class="champ">
       <label id="label-sheet" for="f-sheet-nom">Nom</label>
       <input type="text" id="f-sheet-nom" placeholder="Ex. Secteur Nord">
     </div>
+
+    <div id="champs-incrementiel" style="display:none;">
+      <div class="champ">
+        <label for="f-sheet-depart">Numéro de départ</label>
+        <input type="text" inputmode="numeric" id="f-sheet-depart" placeholder="Ex. 325">
+      </div>
+      <div class="champ">
+        <label>Sens</label>
+        <div class="segments" id="segments-sheet-sens">
+          <button type="button" data-val="croissant">Croissant</button>
+          <button type="button" data-val="decroissant">Décroissant</button>
+        </div>
+      </div>
+    </div>
+
     <button class="btn btn-principal" id="btn-sheet-valider">Créer</button>
   </div>
 </div>
@@ -421,6 +605,7 @@ let ecranActuel = 'listes';
 let listeCourante = null;
 let groupeCourant = null;
 let enAttente = []; // noms détectés en attente de validation pour le groupe courant
+let reglagesImpression = { colonnes:4, lettres:true, tableau:true, alternance:true };
 
 function toast(msg, type=""){
   const t = $('toast');
@@ -447,6 +632,16 @@ async function sauverListes(){ try{ localStorage.setItem('pf_listes', JSON.strin
 async function sauverGroupes(){ try{ localStorage.setItem('pf_groupes', JSON.stringify(groupes)); return true; }catch(e){ toast("Échec de l'enregistrement.", 'err'); return false; } }
 async function sauverEntrees(){ try{ localStorage.setItem('pf_entrees', JSON.stringify(entrees)); return true; }catch(e){ toast("Échec de l'enregistrement.", 'err'); return false; } }
 async function sauverTout(){ return (await sauverListes()) && (await sauverGroupes()) && (await sauverEntrees()); }
+
+function chargerReglagesImpression(){
+  try{
+    const v = localStorage.getItem('pf_reglages_impression');
+    if(v) reglagesImpression = Object.assign({}, reglagesImpression, JSON.parse(v));
+  }catch(e){}
+}
+function sauverReglagesImpression(){
+  try{ localStorage.setItem('pf_reglages_impression', JSON.stringify(reglagesImpression)); }catch(e){}
+}
 
 // ---------- Partage / fusion entre facteurs ----------
 function ouvrirPartage(){
@@ -571,8 +766,10 @@ function rendreGroupes(){
   }
   c.innerHTML = gr.map(g=>{
     const nb = entrees.filter(e=>e.groupeId===g.id).length;
+    const numerote = g.type === 'incrementiel' ? ' · 🔢 incrémentiel' : '';
+    const nomAffiche = g.nom ? escHtml(g.nom) : '<em>(sans nom)</em>';
     return `<div class="carte" data-id="${g.id}">
-      <div><div class="nom">${escHtml(g.nom)}</div><div class="detail">${nb} nom${nb>1?'s':''}</div></div>
+      <div><div class="nom">${nomAffiche}</div><div class="detail">${nb} nom${nb>1?'s':''}${numerote}</div></div>
       <div class="carte-actions">
         <button class="icone-mini btn-renommer-groupe" title="Renommer"><svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg></button>
         <button class="icone-mini supp btn-supprimer-groupe" title="Supprimer"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0l-1 14a2 2 0 01-2 2H7a2 2 0 01-2-2L4 6"/></svg></button>
@@ -620,6 +817,40 @@ function rendreGroupe(){
     genererLigneEntrees($('liste-entrees-int'));
   }
   if(compteurScanCourant()) $('btn-tiroir-scan').textContent = compteurScanCourant() + ' ajouté' + (compteurScanCourant()>1?'s':'');
+  const texte = texteStatutNumerotation(groupes.find(x=>x.id===groupeCourant));
+  $('bandeau-numerotation').style.display = texte ? 'block' : 'none';
+  $('bandeau-numerotation').textContent = texte;
+}
+
+// ---------- Groupes incrémentiels (numérotation automatique) ----------
+function valeurVariable(groupe, entree){
+  if(groupe && groupe.type === 'incrementiel' && typeof entree.numero === 'number'){
+    return (groupe.nom || '') + entree.numero;
+  }
+  return (groupe && groupe.nom) || '';
+}
+
+function texteStatutNumerotation(groupe){
+  if(!groupe || groupe.type !== 'incrementiel') return '';
+  const prochain = typeof groupe.prochainNumero === 'number' ? groupe.prochainNumero : groupe.numerotation.depart;
+  const sens = groupe.numerotation.sens === 'decroissant' ? 'décroissant' : 'croissant';
+  return `🔢 Groupe incrémentiel (${sens}) — prochaine variable : ${(groupe.nom || '') + prochain}`;
+}
+
+function numeroSuivant(groupe){
+  if(typeof groupe.prochainNumero !== 'number') groupe.prochainNumero = groupe.numerotation.depart;
+  const n = groupe.prochainNumero;
+  groupe.prochainNumero += (groupe.numerotation.sens === 'decroissant' ? -1 : 1);
+  return n;
+}
+
+// Construit une nouvelle entrée en lui assignant un numéro automatique si le groupe courant est incrémentiel
+function construireEntree(nom){
+  const entree = { id: nouvelId(), groupeId: groupeCourant, nom, createdAt: Date.now() };
+  const g = groupes.find(x=>x.id===groupeCourant);
+  const numerote = !!(g && g.type === 'incrementiel');
+  if(numerote) entree.numero = numeroSuivant(g);
+  return { entree, numerote };
 }
 
 function compteurScanCourant(){
@@ -628,10 +859,12 @@ function compteurScanCourant(){
 
 // Génère et branche les rangées de noms enregistrés dans un conteneur donné (réutilisé pour le tiroir de scan)
 function genererLigneEntrees(container){
+  const grpObj = groupes.find(x=>x.id===groupeCourant);
   const liste = entrees.filter(e=>e.groupeId===groupeCourant).sort((a,b)=>a.createdAt-b.createdAt);
   container.innerHTML = liste.map(e => `
     <div class="rangee-entree" data-id="${e.id}">
       <span class="nom">${escHtml(e.nom)}</span>
+      ${typeof e.numero === 'number' ? `<span class="badge-numero">${escHtml(valeurVariable(grpObj, e))}</span>` : ''}
       <button class="icone-mini btn-editer" title="Modifier"><svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg></button>
       <button class="icone-mini supp btn-supprimer-entree" title="Supprimer"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0l-1 14a2 2 0 01-2 2H7a2 2 0 01-2-2L4 6"/></svg></button>
     </div>`).join('');
@@ -648,15 +881,24 @@ function genererLigneEntrees(container){
       const rangee = ev.target.closest('.rangee-entree');
       const id = rangee.dataset.id;
       const e = entrees.find(x=>x.id===id);
+      const champNumero = typeof e.numero === 'number'
+        ? `<input type="text" inputmode="numeric" class="f-numero" value="${escHtml(String(e.numero))}">`
+        : '';
       rangee.innerHTML = `
         <input type="text" value="${escHtml(e.nom)}">
+        ${champNumero}
         <button class="icone-mini btn-confirmer-edit" title="Valider"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></button>`;
-      const input = rangee.querySelector('input');
+      const input = rangee.querySelector('input:not(.f-numero)');
+      const inputNumero = rangee.querySelector('.f-numero');
       input.focus();
       rangee.querySelector('.btn-confirmer-edit').addEventListener('click', async ()=>{
         const val = input.value.trim();
         if(!val){ toast('Le nom ne peut pas être vide.', 'err'); return; }
         e.nom = val;
+        if(inputNumero){
+          const n = parseInt(inputNumero.value, 10);
+          if(!isNaN(n)) e.numero = n;
+        }
         if(await sauverEntrees()){ toast('Nom modifié.', 'ok'); rendreGroupe(); if(scanActif) rendreTiroirScan(); }
       });
     });
@@ -678,8 +920,10 @@ function rendreAttente(){
     el.querySelector('.action-ok').addEventListener('click', async ()=>{
       const val = el.querySelector('input').value.trim();
       if(!val){ toast('Le nom ne peut pas être vide.', 'err'); return; }
-      entrees.push({ id: nouvelId(), groupeId: groupeCourant, nom: val, createdAt: Date.now() });
+      const { entree, numerote } = construireEntree(val);
+      entrees.push(entree);
       enAttente = enAttente.filter(p=>p.tid!==tid);
+      if(numerote) await sauverGroupes();
       if(await sauverEntrees()){ tamponner(); rendreGroupe(); rendreListes(); }
     });
     el.querySelector('.action-non').addEventListener('click', ()=>{
@@ -693,8 +937,10 @@ $('btn-ajout-manuel').addEventListener('click', async ()=>{
   const input = $('ajout-manuel');
   const val = input.value.trim();
   if(!val) return;
-  entrees.push({ id: nouvelId(), groupeId: groupeCourant, nom: val, createdAt: Date.now() });
+  const { entree, numerote } = construireEntree(val);
+  entrees.push(entree);
   input.value = '';
+  if(numerote) await sauverGroupes();
   if(await sauverEntrees()){ tamponner(); rendreGroupe(); rendreListes(); toast('Nom ajouté.', 'ok'); }
 });
 $('ajout-manuel').addEventListener('keydown', (e)=>{ if(e.key==='Enter') $('btn-ajout-manuel').click(); });
@@ -887,8 +1133,10 @@ function rendrePucesScan(){
         // tap ou glissé vers le bas -> ajouter à la liste
         btn.classList.add('envol');
         btn.style.transform = 'translateY(120px)';
-        entrees.push({ id: nouvelId(), groupeId: groupeCourant, nom: p.nom, createdAt: Date.now() });
+        const { entree, numerote } = construireEntree(p.nom);
+        entrees.push(entree);
         puceCandidats.splice(i, 1);
+        if(numerote) await sauverGroupes();
         await sauverEntrees();
         tamponner();
         $('btn-tiroir-scan').textContent = compteurScanCourant() + ' ajouté' + (compteurScanCourant()>1?'s':'');
@@ -948,7 +1196,8 @@ async function reconnaitreNoms(base64Image, mediaType){
 function rendreTriee(){
   const gr = groupes.filter(g=>g.listeId===listeCourante);
   let liste = entrees.filter(e=>gr.some(g=>g.id===e.groupeId)).map(e=>({
-    nom: e.nom, groupe: (gr.find(g=>g.id===e.groupeId)||{}).nom || ''
+    nom: e.nom,
+    groupe: valeurVariable(gr.find(g=>g.id===e.groupeId), e)
   }));
   liste.sort((a,b)=>normaliser(a.nom).localeCompare(normaliser(b.nom)));
 
@@ -965,37 +1214,149 @@ function rendreTriee(){
     c.innerHTML = html;
   }
 
-  $('impr-soustitre').textContent = liste.length + ' nom(s) — ' + new Date().toLocaleDateString('fr-FR');
-  $('impr-corps').innerHTML = liste.map(e => `<tr><td>${escHtml(e.nom)}</td><td>${escHtml(e.groupe)}</td></tr>`).join('');
+  const listeObj = listes.find(x=>x.id===listeCourante);
+  const titreDoc = listeObj ? listeObj.nom : 'Baliste';
+  const sousTitreDoc = liste.length + ' nom(s) — ' + new Date().toLocaleDateString('fr-FR');
+  const htmlImpr = genererHtmlImpression(liste);
+
+  $('impr-titre').textContent = titreDoc;
+  $('impr-soustitre').textContent = sousTitreDoc;
+  $('impr-liste').innerHTML = htmlImpr;
+
+  $('apercu-titre-doc').textContent = titreDoc;
+  $('apercu-soustitre').textContent = sousTitreDoc;
+  $('apercu-liste').innerHTML = htmlImpr;
 }
 
-$('btn-imprimer').addEventListener('click', ()=> window.print());
+// Découpe la liste triée en colonnes et génère le HTML d'impression selon les réglages utilisateur
+function genererHtmlImpression(liste){
+  if(liste.length === 0) return '';
+  const nbColonnes = Math.min(4, Math.max(1, reglagesImpression.colonnes || 1));
+  const taille = Math.ceil(liste.length / nbColonnes);
+  const colonnes = [];
+  for(let i=0; i<nbColonnes; i++){
+    const part = liste.slice(i*taille, (i+1)*taille);
+    if(part.length) colonnes.push(genererColonneImpression(part));
+  }
+  return `<div class="impr-colonnes">${colonnes.join('')}</div>`;
+}
+
+function genererColonneImpression(chunk){
+  let derniereLettre = '';
+  if(reglagesImpression.tableau){
+    const lignes = chunk.map((e,i) => {
+      let html = '';
+      if(reglagesImpression.lettres){
+        const lettre = normaliser(e.nom).charAt(0) || '#';
+        if(lettre !== derniereLettre){ html += `<tr><td colspan="2" class="impr-lettre">${lettre}</td></tr>`; derniereLettre = lettre; }
+      }
+      const parite = reglagesImpression.alternance && i % 2 === 1 ? ' class="impair"' : '';
+      html += `<tr${parite}><td class="nom">${escHtml(e.nom)}</td><td class="grp">${escHtml(e.groupe)}</td></tr>`;
+      return html;
+    }).join('');
+    return `<div class="impr-col"><table class="impr-table">${lignes}</table></div>`;
+  }
+  const lignes = chunk.map((e,i) => {
+    let html = '';
+    if(reglagesImpression.lettres){
+      const lettre = normaliser(e.nom).charAt(0) || '#';
+      if(lettre !== derniereLettre){ html += `<div class="impr-lettre">${lettre}</div>`; derniereLettre = lettre; }
+    }
+    const parite = reglagesImpression.alternance && i % 2 === 1 ? ' impair' : '';
+    html += `<div class="impr-ligne${parite}"><span class="nom">${escHtml(e.nom)}</span><span class="leader"></span><span class="grp">${escHtml(e.groupe)}</span></div>`;
+    return html;
+  }).join('');
+  return `<div class="impr-col">${lignes}</div>`;
+}
+
+// ---------- Aperçu avant impression ----------
+function ouvrirApercuImpression(){
+  document.querySelectorAll('#segments-colonnes button').forEach(b=>{
+    b.classList.toggle('actif', parseInt(b.dataset.val, 10) === reglagesImpression.colonnes);
+  });
+  $('tg-lettres').checked = reglagesImpression.lettres;
+  $('tg-tableau').checked = reglagesImpression.tableau;
+  $('tg-alternance').checked = reglagesImpression.alternance;
+  rendreTriee();
+  $('apercu-overlay').classList.add('actif');
+}
+$('btn-imprimer').addEventListener('click', ouvrirApercuImpression);
+$('btn-fermer-apercu').addEventListener('click', ()=> $('apercu-overlay').classList.remove('actif'));
+$('btn-imprimer-final').addEventListener('click', ()=> window.print());
+
+document.querySelectorAll('#segments-colonnes button').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    reglagesImpression.colonnes = parseInt(b.dataset.val, 10);
+    document.querySelectorAll('#segments-colonnes button').forEach(x=>x.classList.toggle('actif', x===b));
+    sauverReglagesImpression();
+    rendreTriee();
+  });
+});
+['lettres','tableau','alternance'].forEach(cle=>{
+  $('tg-'+cle).addEventListener('change', (e)=>{
+    reglagesImpression[cle] = e.target.checked;
+    sauverReglagesImpression();
+    rendreTriee();
+  });
+});
 
 // ---------- Sheet générique (nouvelle liste / nouveau groupe) ----------
 let sheetMode = null; // 'liste' ou 'groupe'
 let idEnEdition = null; // id de l'élément à renommer, ou null si création
 
+function majVisibiliteIncrementiel(){
+  const type = document.querySelector('#segments-type-groupe button.actif');
+  const incrementiel = sheetMode === 'groupe' && type && type.dataset.val === 'incrementiel';
+  $('champs-incrementiel').style.display = incrementiel ? 'block' : 'none';
+  $('label-sheet').textContent = incrementiel ? 'Nom du groupe (facultatif)' : 'Nom du groupe';
+  $('f-sheet-nom').placeholder = incrementiel ? 'Ex. A (laisse vide pour un numéro seul)' : 'Ex. A, 3, batB, Pav1…';
+}
+
 function ouvrirSheet(mode, idExistant){
   sheetMode = mode;
   idEnEdition = idExistant || null;
   const renommage = !!idEnEdition;
+  const item = renommage ? (mode === 'liste' ? listes.find(x=>x.id===idEnEdition) : groupes.find(x=>x.id===idEnEdition)) : null;
+
   $('titre-sheet').textContent = renommage
     ? (mode === 'liste' ? 'Renommer la liste' : 'Renommer le groupe')
     : (mode === 'liste' ? 'Nouvelle liste' : 'Nouveau groupe');
   $('label-sheet').textContent = mode === 'liste' ? 'Nom de la liste' : 'Nom du groupe';
   $('f-sheet-nom').placeholder = mode === 'liste' ? 'Ex. Secteur Nord' : 'Ex. A, 3, batB, Pav1…';
   $('btn-sheet-valider').textContent = renommage ? 'Enregistrer' : 'Créer';
-  if(renommage){
-    const item = mode === 'liste' ? listes.find(x=>x.id===idEnEdition) : groupes.find(x=>x.id===idEnEdition);
-    $('f-sheet-nom').value = item ? item.nom : '';
-  }else{
-    $('f-sheet-nom').value = '';
+  $('f-sheet-nom').value = item ? item.nom : '';
+
+  $('champ-type-groupe').style.display = mode === 'groupe' ? 'block' : 'none';
+  if(mode === 'groupe'){
+    const type = (item && item.type) || 'normal';
+    document.querySelectorAll('#segments-type-groupe button').forEach(b=>{
+      b.classList.toggle('actif', b.dataset.val === type);
+    });
+    const num = (item && item.numerotation) || { depart:'', sens:'croissant' };
+    $('f-sheet-depart').value = (num.depart !== undefined && num.depart !== null) ? num.depart : '';
+    document.querySelectorAll('#segments-sheet-sens button').forEach(b=>{
+      b.classList.toggle('actif', b.dataset.val === (num.sens || 'croissant'));
+    });
   }
+  majVisibiliteIncrementiel();
+
   $('voile').classList.add('ouvert');
   setTimeout(()=>$('f-sheet-nom').focus(), 200);
 }
 function fermerSheet(){ $('voile').classList.remove('ouvert'); }
 $('voile').addEventListener('click', (e)=>{ if(e.target.id==='voile') fermerSheet(); });
+
+document.querySelectorAll('#segments-type-groupe button').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    document.querySelectorAll('#segments-type-groupe button').forEach(x=>x.classList.toggle('actif', x===b));
+    majVisibiliteIncrementiel();
+  });
+});
+document.querySelectorAll('#segments-sheet-sens button').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    document.querySelectorAll('#segments-sheet-sens button').forEach(x=>x.classList.toggle('actif', x===b));
+  });
+});
 
 $('fab').addEventListener('click', ()=>{
   if(ecranActuel === 'listes') ouvrirSheet('liste');
@@ -1004,7 +1365,20 @@ $('fab').addEventListener('click', ()=>{
 
 $('btn-sheet-valider').addEventListener('click', async ()=>{
   const val = $('f-sheet-nom').value.trim();
-  if(!val){ toast('Indique un nom.', 'err'); return; }
+
+  const typeBtn = document.querySelector('#segments-type-groupe button.actif');
+  const type = sheetMode === 'groupe' && typeBtn ? typeBtn.dataset.val : 'normal';
+
+  if(sheetMode === 'liste' && !val){ toast('Indique un nom.', 'err'); return; }
+  if(sheetMode === 'groupe' && type === 'normal' && !val){ toast('Indique un nom.', 'err'); return; }
+
+  let departVal = null, sens = 'croissant';
+  if(sheetMode === 'groupe' && type === 'incrementiel'){
+    departVal = parseInt($('f-sheet-depart').value, 10);
+    if(isNaN(departVal)){ toast('Indique un numéro de départ.', 'err'); return; }
+    const sensBtn = document.querySelector('#segments-sheet-sens button.actif');
+    sens = sensBtn ? sensBtn.dataset.val : 'croissant';
+  }
 
   if(idEnEdition){
     if(sheetMode === 'liste'){
@@ -1012,7 +1386,20 @@ $('btn-sheet-valider').addEventListener('click', async ()=>{
       if(l){ l.nom = val; if(await sauverListes()){ fermerSheet(); afficherEcran(ecranActuel); toast('Liste renommée.', 'ok'); } }
     }else{
       const g = groupes.find(x=>x.id===idEnEdition);
-      if(g){ g.nom = val; if(await sauverGroupes()){ fermerSheet(); afficherEcran(ecranActuel); toast('Groupe renommé.', 'ok'); } }
+      if(g){
+        g.nom = val;
+        g.type = type;
+        if(type === 'incrementiel'){
+          const ancien = g.numerotation;
+          const changement = !ancien || ancien.depart !== departVal || ancien.sens !== sens;
+          g.numerotation = { depart: departVal, sens };
+          if(changement || typeof g.prochainNumero !== 'number') g.prochainNumero = departVal;
+        }else{
+          g.numerotation = null;
+          delete g.prochainNumero;
+        }
+        if(await sauverGroupes()){ fermerSheet(); afficherEcran(ecranActuel); toast('Groupe modifié.', 'ok'); }
+      }
     }
     idEnEdition = null;
     return;
@@ -1023,7 +1410,11 @@ $('btn-sheet-valider').addEventListener('click', async ()=>{
     listes.push(l);
     if(await sauverListes()){ fermerSheet(); listeCourante = l.id; afficherEcran('liste'); toast('Liste créée.', 'ok'); }
   }else{
-    const g = { id: nouvelId(), listeId: listeCourante, nom: val, createdAt: Date.now() };
+    const g = { id: nouvelId(), listeId: listeCourante, nom: val, type, createdAt: Date.now() };
+    if(type === 'incrementiel'){
+      g.numerotation = { depart: departVal, sens };
+      g.prochainNumero = departVal;
+    }
     groupes.push(g);
     if(await sauverGroupes()){ fermerSheet(); groupeCourant = g.id; enAttente = []; afficherEcran('groupe'); toast('Groupe créé.', 'ok'); }
   }
@@ -1033,6 +1424,7 @@ $('f-sheet-nom').addEventListener('keydown', (e)=>{ if(e.key==='Enter') $('btn-s
 // ---------- Démarrage ----------
 (async function init(){
   await chargerTout();
+  chargerReglagesImpression();
   afficherEcran('listes');
 })();
 </script>
