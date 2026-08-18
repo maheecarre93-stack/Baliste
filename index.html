@@ -46,7 +46,7 @@
     content:""; position:absolute; inset:5px; border-radius:50%;
     border:1px dashed var(--jaune); opacity:0.7;
   }
-  .cachet svg{width:17px; height:17px; fill:var(--jaune);}
+  .cachet svg{width:17px; height:17px; fill:none; stroke:var(--jaune); stroke-width:2; stroke-linecap:round; stroke-linejoin:round;}
   header .titre{flex:1; min-width:0;}
   header h1{font-size:18px; margin:0; line-height:1.1; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   header .sous{font-size:11px; color:#c9d2e3; margin-top:3px; font-family:'IBM Plex Sans'; text-transform:none; letter-spacing:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
@@ -433,7 +433,7 @@
     <svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>
   </button>
   <div class="cachet">
-    <svg viewBox="0 0 24 24"><path d="M12 2c-4 3-7 6-7 10a7 7 0 0014 0c0-4-3-7-7-10z"/></svg>
+    <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
   </div>
   <div class="titre">
     <h1 id="titre-ecran">Baliste</h1>
