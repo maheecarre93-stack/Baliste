@@ -371,13 +371,18 @@
     padding:13px 28px; font-weight:700; font-size:14.5px; transition:background 0.15s, color 0.15s;
   }
   .btn-scan-manuel.pause{background:var(--jaune); color:var(--encre); border:none;}
+  .scan-tiroir-fond{
+    position:absolute; inset:0; z-index:3; background:rgba(0,0,0,0);
+    opacity:0; pointer-events:none; transition:opacity 0.2s, background 0.2s;
+  }
+  .scan-tiroir-fond.ouvert{opacity:1; pointer-events:auto; background:rgba(0,0,0,0.35);}
   .scan-tiroir{
-    position:absolute; left:0; right:0; bottom:0; background:var(--encre); z-index:3;
+    position:absolute; left:0; right:0; bottom:0; background:var(--encre); z-index:4;
     border-radius:18px 18px 0 0; padding:6px 16px calc(20px + env(safe-area-inset-bottom));
     max-height:70vh; overflow-y:auto; transform:translateY(100%); transition:transform 0.2s;
   }
   .scan-tiroir.ouvert{transform:translateY(0);}
-  .scan-tiroir-poignee{width:36px; height:4px; background:rgba(255,255,255,0.3); border-radius:3px; margin:10px auto 12px;}
+  .scan-tiroir-poignee{width:36px; height:4px; background:rgba(255,255,255,0.3); border-radius:3px; margin:10px auto 12px; touch-action:none; cursor:grab;}
   .scan-tiroir .rangee-entree{background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,0.15);}
   .scan-tiroir .rangee-entree .nom{color:#fff;}
   .scan-tiroir .icone-mini{background:rgba(255,255,255,0.12);}
@@ -594,6 +599,7 @@
     <button class="btn-scan-manuel" id="btn-scan-manuel">Mettre en pause</button>
   </div>
 
+  <div class="scan-tiroir-fond" id="scan-tiroir-fond"></div>
   <div class="scan-tiroir" id="scan-tiroir">
     <div class="scan-tiroir-poignee" id="fermer-tiroir-scan"></div>
     <div class="sec-titre" style="color:#fff;">Noms ajoutés dans ce groupe</div>
@@ -1082,11 +1088,43 @@ $('btn-scan-manuel').addEventListener('click', ()=>{
     scannerImage(true);
   }
 });
+function fermerTiroirScan(){
+  $('scan-tiroir').classList.remove('ouvert');
+  $('scan-tiroir-fond').classList.remove('ouvert');
+}
 $('btn-tiroir-scan').addEventListener('click', ()=>{
   rendreTiroirScan();
   $('scan-tiroir').classList.add('ouvert');
+  $('scan-tiroir-fond').classList.add('ouvert');
 });
-$('fermer-tiroir-scan').addEventListener('click', ()=> $('scan-tiroir').classList.remove('ouvert'));
+$('fermer-tiroir-scan').addEventListener('click', fermerTiroirScan);
+$('scan-tiroir-fond').addEventListener('click', fermerTiroirScan);
+
+(function(){
+  const poignee = $('fermer-tiroir-scan');
+  const tiroir = $('scan-tiroir');
+  let depart = null;
+  poignee.addEventListener('pointerdown', (e)=>{
+    depart = e.clientY;
+    tiroir.style.transition = 'none';
+    poignee.setPointerCapture(e.pointerId);
+  });
+  poignee.addEventListener('pointermove', (e)=>{
+    if(depart === null) return;
+    const dy = Math.max(0, e.clientY - depart);
+    tiroir.style.transform = `translateY(${dy}px)`;
+  });
+  const finGlisseTiroir = (e)=>{
+    if(depart === null) return;
+    const dy = Math.max(0, e.clientY - depart);
+    depart = null;
+    tiroir.style.transition = '';
+    tiroir.style.transform = '';
+    if(dy > 70) fermerTiroirScan();
+  };
+  poignee.addEventListener('pointerup', finGlisseTiroir);
+  poignee.addEventListener('pointercancel', finGlisseTiroir);
+})();
 
 async function demarrerScan(){
   puceCandidats = [];
@@ -1121,7 +1159,7 @@ function arreterScan(){
   $('btn-scan-direct').classList.remove('actif');
   $('txt-scan-direct').textContent = 'Scanner en direct';
   $('scan-overlay').classList.remove('actif');
-  $('scan-tiroir').classList.remove('ouvert');
+  fermerTiroirScan();
   rendreGroupe();
   rendreListes();
 }
