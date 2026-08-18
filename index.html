@@ -177,12 +177,18 @@
     display:flex; align-items:center; justify-content:center;
   }
   .numero-btn:active{ background:var(--jaune-2); transform:scale(0.93); }
+  .numero-btn-mini{ width:38px; height:38px; font-size:19px; }
   .numero-valeur{ flex:1; text-align:center; color:#fff; }
   .numero-label{
     display:block; font-size:11px; color:#c9d2e3; text-transform:uppercase;
     letter-spacing:0.05em; margin-bottom:2px;
   }
-  .numero-chiffre{ font-family:'Oswald'; font-size:26px; font-weight:700; letter-spacing:0.03em; }
+  .numero-chiffre{ font-family:'Oswald'; font-size:26px; font-weight:700; letter-spacing:0.03em; cursor:pointer; }
+  .numero-input{
+    display:none; font-family:'Oswald'; font-weight:700; font-size:22px; letter-spacing:0.03em;
+    text-align:center; border:none; border-radius:8px; padding:4px 10px; width:100px;
+    color:var(--encre); background:#fff; vertical-align:middle;
+  }
   .icone-mini{
     width:32px; height:32px; border-radius:8px; border:none; background:#f1ece0;
     display:flex; align-items:center; justify-content:center; flex-shrink:0;
@@ -313,6 +319,15 @@
   .scan-compteur{
     background:rgba(20,25,38,0.6); border:1px solid rgba(255,255,255,0.25); color:#fff;
     border-radius:20px; padding:8px 16px; font-size:13px; font-weight:600; font-family:'IBM Plex Sans';
+  }
+  .scan-numero{
+    position:relative; z-index:2; display:none; align-items:center; justify-content:center; gap:14px;
+    padding:2px 16px 8px;
+  }
+  .numero-chiffre-scan{
+    background:rgba(20,25,38,0.65); border:1px solid rgba(255,255,255,0.25); color:#fff;
+    border-radius:20px; padding:9px 20px; font-family:'Oswald'; font-size:17px; font-weight:700;
+    letter-spacing:0.03em; min-width:64px; text-align:center; cursor:pointer;
   }
   .scan-groupe-droite{display:flex; align-items:center; gap:9px;}
   .scan-indicateur{
@@ -449,7 +464,8 @@
       <button type="button" class="numero-btn" id="btn-numero-moins" aria-label="Numéro précédent">−</button>
       <div class="numero-valeur">
         <span class="numero-label">Ajout au numéro</span>
-        <span class="numero-chiffre" id="numero-chiffre-actuel">—</span>
+        <span class="numero-chiffre" id="numero-chiffre-actuel" role="button" tabindex="0">—</span>
+        <input type="text" inputmode="numeric" class="numero-input" id="numero-chiffre-input">
       </div>
       <button type="button" class="numero-btn" id="btn-numero-plus" aria-label="Numéro suivant">+</button>
     </div>
@@ -560,6 +576,13 @@
       <span class="scan-indicateur" id="scan-indicateur" title="Scan en cours"></span>
       <button class="scan-compteur" id="btn-tiroir-scan">0 ajouté</button>
     </div>
+  </div>
+
+  <div class="scan-numero" id="scan-numero" style="display:none;">
+    <button type="button" class="numero-btn numero-btn-mini" id="btn-scan-numero-moins" aria-label="Numéro précédent">−</button>
+    <span class="numero-chiffre-scan" id="scan-numero-chiffre" role="button" tabindex="0">—</span>
+    <input type="text" inputmode="numeric" class="numero-input" id="scan-numero-chiffre-input">
+    <button type="button" class="numero-btn numero-btn-mini" id="btn-scan-numero-plus" aria-label="Numéro suivant">+</button>
   </div>
 
   <div class="scan-etat-flottant" id="scan-etat-flottant"><div class="spinner-clair"></div><span>Lecture…</span></div>
@@ -847,10 +870,12 @@ function numeroActuel(groupe){
 
 function rendreBarreNumero(){
   const g = groupes.find(x=>x.id===groupeCourant);
-  const barre = $('barre-numero');
-  if(!g || g.type !== 'incrementiel'){ barre.style.display = 'none'; return; }
-  barre.style.display = 'flex';
-  $('numero-chiffre-actuel').textContent = (g.nom || '') + numeroActuel(g);
+  const incrementiel = !!(g && g.type === 'incrementiel');
+  const valeur = incrementiel ? (g.nom || '') + numeroActuel(g) : '—';
+  $('barre-numero').style.display = incrementiel ? 'flex' : 'none';
+  $('numero-chiffre-actuel').textContent = valeur;
+  $('scan-numero').style.display = incrementiel ? 'flex' : 'none';
+  $('scan-numero-chiffre').textContent = valeur;
 }
 
 async function ajusterNumero(delta){
@@ -862,6 +887,38 @@ async function ajusterNumero(delta){
 }
 $('btn-numero-moins').addEventListener('click', ()=> ajusterNumero(-1));
 $('btn-numero-plus').addEventListener('click', ()=> ajusterNumero(1));
+$('btn-scan-numero-moins').addEventListener('click', ()=> ajusterNumero(-1));
+$('btn-scan-numero-plus').addEventListener('click', ()=> ajusterNumero(1));
+
+// Édition manuelle du numéro courant au clic (clavier numérique uniquement)
+function brancherEditionNumero(idSpan, idInput){
+  const span = $(idSpan), input = $(idInput);
+  const activer = ()=>{
+    const g = groupes.find(x=>x.id===groupeCourant);
+    if(!g || g.type !== 'incrementiel') return;
+    input.value = numeroActuel(g);
+    span.style.display = 'none';
+    input.style.display = 'inline-block';
+    input.focus();
+    input.select();
+  };
+  span.addEventListener('click', activer);
+  span.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); activer(); } });
+  input.addEventListener('blur', async ()=>{
+    const g = groupes.find(x=>x.id===groupeCourant);
+    if(g && g.type === 'incrementiel'){
+      const n = parseInt(input.value, 10);
+      if(!isNaN(n)) g.prochainNumero = n;
+      await sauverGroupes();
+    }
+    input.style.display = 'none';
+    span.style.display = '';
+    rendreBarreNumero();
+  });
+  input.addEventListener('keydown', (e)=>{ if(e.key==='Enter') input.blur(); });
+}
+brancherEditionNumero('numero-chiffre-actuel', 'numero-chiffre-input');
+brancherEditionNumero('scan-numero-chiffre', 'scan-numero-chiffre-input');
 
 // Construit une nouvelle entrée en lui assignant le numéro courant si le groupe est incrémentiel
 function construireEntree(nom){
