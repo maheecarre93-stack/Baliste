@@ -312,6 +312,16 @@
   }
   .scan-overlay.actif{display:flex;}
   #video-scan{position:absolute; inset:0; width:100%; height:100%; object-fit:cover;}
+  .scan-cadre{
+    position:absolute; z-index:1; left:8%; right:8%; top:38%; height:24%;
+    border:2px solid rgba(255,255,255,0.75); border-radius:10px;
+    box-shadow:0 0 0 999px rgba(0,0,0,0.35); pointer-events:none;
+  }
+  .scan-cadre::before, .scan-cadre::after{
+    content:""; position:absolute; width:16px; height:16px; border:2.5px solid var(--jaune);
+  }
+  .scan-cadre::before{ top:-2.5px; left:-2.5px; border-right:none; border-bottom:none; }
+  .scan-cadre::after{ bottom:-2.5px; right:-2.5px; border-left:none; border-top:none; }
   .scan-haut{
     position:relative; z-index:2; display:flex; justify-content:space-between; align-items:center;
     padding: max(14px, env(safe-area-inset-top)) 14px 10px; background:linear-gradient(rgba(0,0,0,0.55), transparent);
@@ -577,6 +587,7 @@
 
 <div class="scan-overlay" id="scan-overlay">
   <video id="video-scan" autoplay playsinline muted></video>
+  <div class="scan-cadre" aria-hidden="true"></div>
   <canvas id="canvas-scan" style="display:none;"></canvas>
 
   <div class="scan-haut">
@@ -1068,18 +1079,53 @@ $('input-photo').addEventListener('change', async (e)=>{
 let flotStream = null;
 let scanActif = false;
 let scanOccupe = false;
-let scanIntervalle = null;
+let scanTimeoutId = null;
 let puceCandidats = []; // {nom, ajoute:bool}
 let erreurContinue = false;
 let autoScanActif = true; // le scan automatique en continu tourne ou est en pause
+
+const PAUSE_APRES_SCAN = 500;  // pause entre deux analyses IA, au lieu d'un intervalle fixe : on relance dès que la réponse précédente arrive
+const PAUSE_APRES_FLOU = 250;  // nouvelle tentative rapide quand l'image est jugée trop floue pour être envoyée
+const NETTETE_MIN = 30;        // seuil de variance de contraste en dessous duquel une image est jugée trop floue
+                                // (valeur de départ approximative, à ajuster après usage réel : augmenter si des
+                                // photos floues sont quand même envoyées, diminuer si des photos nettes sont sautées)
+
+// Programme la prochaine capture après un délai donné, seulement si le scan est toujours actif
+// et non en pause (relit l'état au moment de l'appel, donc une pause déclenchée pendant une
+// analyse en cours annule bien la suite).
+function planifierProchainScan(delai){
+  clearTimeout(scanTimeoutId);
+  scanTimeoutId = null;
+  if(!scanActif || !autoScanActif) return;
+  scanTimeoutId = setTimeout(()=> scannerImage(false), delai);
+}
+
+// Estime la netteté d'une image via la variance des écarts de luminosité entre pixels voisins
+// (proxy rapide d'un flou de mouvement, sans convolution complète) : une image nette a de forts
+// écarts de contraste d'un pixel à l'autre, une image floue les lisse.
+function mesurerNettete(ctx, largeur, hauteur){
+  const pas = 4;
+  const data = ctx.getImageData(0, 0, largeur, hauteur).data;
+  let somme = 0, sommeCarre = 0, n = 0;
+  for(let y = 0; y < hauteur; y += pas){
+    for(let x = 0; x < largeur - pas; x += pas){
+      const i = (y * largeur + x) * 4;
+      const j = (y * largeur + x + pas) * 4;
+      const ecart = (data[i] + data[i+1] + data[i+2] - data[j] - data[j+1] - data[j+2]) / 3;
+      somme += ecart; sommeCarre += ecart * ecart; n++;
+    }
+  }
+  const moyenne = somme / n;
+  return sommeCarre / n - moyenne * moyenne;
+}
 
 $('btn-scan-direct').addEventListener('click', ()=>{ if(scanActif) arreterScan(); else demarrerScan(); });
 $('btn-fermer-scan').addEventListener('click', arreterScan);
 $('btn-scan-manuel').addEventListener('click', ()=>{
   if(autoScanActif){
     autoScanActif = false;
-    clearInterval(scanIntervalle);
-    scanIntervalle = null;
+    clearTimeout(scanTimeoutId);
+    scanTimeoutId = null;
     $('btn-scan-manuel').classList.add('pause');
     $('btn-scan-manuel').textContent = 'Reprendre le scan';
     $('scan-indicateur').classList.add('pause');
@@ -1088,7 +1134,6 @@ $('btn-scan-manuel').addEventListener('click', ()=>{
     $('btn-scan-manuel').classList.remove('pause');
     $('btn-scan-manuel').textContent = 'Mettre en pause';
     $('scan-indicateur').classList.remove('pause');
-    scanIntervalle = setInterval(()=> scannerImage(false), 3200);
     scannerImage(true);
   }
 });
@@ -1151,14 +1196,13 @@ async function demarrerScan(){
   $('scan-overlay').classList.add('actif');
   $('btn-tiroir-scan').textContent = compteurScanCourant() + ' ajouté' + (compteurScanCourant()>1?'s':'');
   await video.play().catch(()=>{});
-  scanIntervalle = setInterval(()=> scannerImage(false), 3200);
   scannerImage(false);
 }
 
 function arreterScan(){
   scanActif = false;
-  clearInterval(scanIntervalle);
-  scanIntervalle = null;
+  clearTimeout(scanTimeoutId);
+  scanTimeoutId = null;
   if(flotStream){ flotStream.getTracks().forEach(t=>t.stop()); flotStream = null; }
   $('btn-scan-direct').classList.remove('actif');
   $('txt-scan-direct').textContent = 'Scanner en direct';
@@ -1176,13 +1220,22 @@ async function scannerImage(manuel){
   $('scan-etat-flottant').style.display = 'flex';
 
   const canvas = $('canvas-scan');
-  const largeurCible = 900;
+  const largeurCible = 1100;
   const ratio = video.videoHeight / video.videoWidth;
   canvas.width = largeurCible;
   canvas.height = Math.round(largeurCible * ratio);
   const ctx = canvas.getContext('2d');
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-  const base64 = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
+
+  if(!manuel && mesurerNettete(ctx, canvas.width, canvas.height) < NETTETE_MIN){
+    // Image trop floue (mouvement de caméra) : on ne gâche pas un appel IA, nouvelle tentative rapide
+    scanOccupe = false;
+    $('scan-etat-flottant').style.display = 'none';
+    planifierProchainScan(PAUSE_APRES_FLOU);
+    return;
+  }
+
+  const base64 = canvas.toDataURL('image/jpeg', 0.75).split(',')[1];
 
 try{
     const noms = await reconnaitreNoms(base64, 'image/jpeg');
@@ -1194,6 +1247,7 @@ try{
   }
   scanOccupe = false;
   $('scan-etat-flottant').style.display = 'none';
+  planifierProchainScan(PAUSE_APRES_SCAN);
 }
 
 function ajouterCandidats(noms){
@@ -1294,7 +1348,7 @@ async function reconnaitreNoms(base64Image, mediaType){
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       model: "claude-haiku-4-5",
-      max_tokens: 500,
+      max_tokens: 200,
       messages: [{
         role: "user",
         content: [
