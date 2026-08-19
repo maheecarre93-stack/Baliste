@@ -357,8 +357,11 @@
     background:rgba(20,25,38,0.75); color:#fff; padding:9px 15px; border-radius:20px; font-size:13px; width:fit-content;
   }
   .spinner-clair{width:14px; height:14px; border:2.5px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%; animation:spin 0.7s linear infinite;}
+  .scan-puces-zone{
+    position:relative; z-index:2; margin-top:auto;
+  }
   .scan-puces-barre{
-    position:relative; z-index:2; margin-top:auto; display:flex; justify-content:center;
+    display:flex; justify-content:center;
     padding:0 14px 6px;
   }
   .scan-effacer-puces{
@@ -367,7 +370,7 @@
   }
   .scan-effacer-puces:active{ background:rgba(0,0,0,0.6); }
   .scan-puces{
-    position:relative; z-index:2; padding:0 14px 10px; display:flex; flex-wrap:wrap;
+    padding:0 14px 10px; display:flex; flex-wrap:wrap;
     gap:6px; justify-content:center;
   }
   .scan-puce{
@@ -616,10 +619,12 @@
 
   <div class="scan-etat-flottant" id="scan-etat-flottant"><div class="spinner-clair"></div><span>Lecture…</span></div>
 
-  <div class="scan-puces-barre" id="scan-puces-barre" style="display:none;">
-    <button type="button" class="scan-effacer-puces" id="btn-effacer-puces">Tout effacer</button>
+  <div class="scan-puces-zone">
+    <div class="scan-puces-barre" id="scan-puces-barre" style="display:none;">
+      <button type="button" class="scan-effacer-puces" id="btn-effacer-puces">Tout effacer</button>
+    </div>
+    <div class="scan-puces" id="scan-puces"></div>
   </div>
-  <div class="scan-puces" id="scan-puces"></div>
 
   <div class="scan-bas">
     <div class="scan-message" id="scan-message">Vise les boîtes, les noms détectés apparaissent ici. Glisse un nom vers le bas pour l'ajouter, vers le haut pour l'effacer.</div>
