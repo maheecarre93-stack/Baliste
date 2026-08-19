@@ -1100,6 +1100,27 @@ function planifierProchainScan(delai){
   scanTimeoutId = setTimeout(()=> scannerImage(false), delai);
 }
 
+// Coordonnées du cadre-guide en fraction de l'écran — à garder synchronisées avec .scan-cadre en CSS
+// (left:8%, right:8%, top:38%, height:24%).
+const CADRE_GAUCHE = 0.08, CADRE_DROITE = 0.92, CADRE_HAUT = 0.38, CADRE_BAS = 0.62;
+
+// Traduit la position à l'écran du cadre-guide en coordonnées réelles dans le flux vidéo natif,
+// pour ne capturer et n'envoyer à l'IA que ce que l'utilisateur voit dans le cadre. La vidéo est
+// affichée en object-fit:cover, donc elle est zoomée et recentrée par rapport à sa résolution
+// native : il faut annuler ce zoom pour retrouver les bonnes coordonnées source.
+function zoneCadreDansVideo(video){
+  const cw = window.innerWidth, ch = window.innerHeight;
+  const vw = video.videoWidth, vh = video.videoHeight;
+  const echelle = Math.max(cw / vw, ch / vh);
+  const decalageX = (vw * echelle - cw) / 2;
+  const decalageY = (vh * echelle - ch) / 2;
+  const sx = (cw * CADRE_GAUCHE + decalageX) / echelle;
+  const sy = (ch * CADRE_HAUT + decalageY) / echelle;
+  const sLargeur = cw * (CADRE_DROITE - CADRE_GAUCHE) / echelle;
+  const sHauteur = ch * (CADRE_BAS - CADRE_HAUT) / echelle;
+  return { sx, sy, sLargeur, sHauteur };
+}
+
 // Estime la netteté d'une image via la variance des écarts de luminosité entre pixels voisins
 // (proxy rapide d'un flou de mouvement, sans convolution complète) : une image nette a de forts
 // écarts de contraste d'un pixel à l'autre, une image floue les lisse.
@@ -1221,11 +1242,11 @@ async function scannerImage(manuel){
 
   const canvas = $('canvas-scan');
   const largeurCible = 1100;
-  const ratio = video.videoHeight / video.videoWidth;
+  const { sx, sy, sLargeur, sHauteur } = zoneCadreDansVideo(video);
   canvas.width = largeurCible;
-  canvas.height = Math.round(largeurCible * ratio);
+  canvas.height = Math.round(largeurCible * (sHauteur / sLargeur));
   const ctx = canvas.getContext('2d');
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  ctx.drawImage(video, sx, sy, sLargeur, sHauteur, 0, 0, canvas.width, canvas.height);
 
   if(!manuel && mesurerNettete(ctx, canvas.width, canvas.height) < NETTETE_MIN){
     // Image trop floue (mouvement de caméra) : on ne gâche pas un appel IA, nouvelle tentative rapide
