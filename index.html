@@ -313,7 +313,7 @@
   .scan-overlay.actif{display:flex;}
   #video-scan{position:absolute; inset:0; width:100%; height:100%; object-fit:cover;}
   .scan-cadre{
-    position:absolute; z-index:1; left:8%; right:8%; top:38%; height:24%;
+    position:absolute; z-index:1; left:8%; right:8%; top:33%; height:34%;
     border:2px solid rgba(255,255,255,0.75); border-radius:10px;
     box-shadow:0 0 0 999px rgba(0,0,0,0.35); pointer-events:none;
   }
@@ -1101,8 +1101,9 @@ function planifierProchainScan(delai){
 }
 
 // Coordonnées du cadre-guide en fraction de l'écran — à garder synchronisées avec .scan-cadre en CSS
-// (left:8%, right:8%, top:38%, height:24%).
-const CADRE_GAUCHE = 0.08, CADRE_DROITE = 0.92, CADRE_HAUT = 0.38, CADRE_BAS = 0.62;
+// (left:8%, right:8%, top:33%, height:34%). Zone plus haute que large pour couvrir le cas de
+// plusieurs étiquettes empilées sur une même boîte (colocation, sous-location...).
+const CADRE_GAUCHE = 0.08, CADRE_DROITE = 0.92, CADRE_HAUT = 0.33, CADRE_BAS = 0.67;
 
 // Traduit la position à l'écran du cadre-guide en coordonnées réelles dans le flux vidéo natif,
 // pour ne capturer et n'envoyer à l'IA que ce que l'utilisateur voit dans le cadre. La vidéo est
@@ -1374,7 +1375,7 @@ async function reconnaitreNoms(base64Image, mediaType){
         role: "user",
         content: [
           { type: "image", source: { type: "base64", media_type: mediaType, data: base64Image } },
-          { type: "text", text: "Cette photo montre une ou plusieurs boîtes aux lettres ou plaques nominatives. Lis CHAQUE étiquette lisible, manuscrite ou imprimée, qui identifie un occupant : nom de famille (avec ou sans prénom), nom d'entreprise, de société, d'association, de cabinet. Recopie chaque étiquette telle qu'elle est écrite, sans essayer d'en extraire seulement un nom de famille si ce n'en est pas un. Ignore tout ce qui n'identifie pas un occupant : numéros d'étage ou d'appartement seuls (ex. \"3e étage\", \"Appt 4\", \"RDC\"), autocollants ou mentions \"Stop Pub\"/publicité, et plus généralement toute mention purement décorative ou technique de la boîte aux lettres. Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant ni après, sans balises markdown, exactement au format : {\"noms\": [\"ÉTIQUETTE1\", \"ÉTIQUETTE2\"]}. Mets chaque étiquette en majuscules, une par élément, sans doublons. Si rien n'est lisible, réponds {\"noms\": []}." }
+          { type: "text", text: "Cette photo montre une ou plusieurs boîtes aux lettres ou plaques nominatives. Lis CHAQUE étiquette lisible, manuscrite ou imprimée, qui identifie un occupant : nom de famille (avec ou sans prénom), nom d'entreprise, de société, d'association, de cabinet. Recopie chaque étiquette telle qu'elle est écrite, sans essayer d'en extraire seulement un nom de famille si ce n'en est pas un. Une même boîte peut avoir PLUSIEURS étiquettes distinctes empilées ou côte à côte (colocation, sous-location) : lis-les toutes séparément, même si l'une d'elles semble plus petite, ajoutée après coup, ou redondante avec une autre. Ignore uniquement ce qui n'identifie pas un occupant : numéros d'étage ou d'appartement seuls (ex. \"3e étage\", \"Appt 4\", \"RDC\"), autocollants ou mentions \"Stop Pub\"/publicité, et plus généralement toute mention purement décorative ou technique de la boîte aux lettres. Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant ni après, sans balises markdown, exactement au format : {\"noms\": [\"ÉTIQUETTE1\", \"ÉTIQUETTE2\"]}. Mets chaque étiquette en majuscules, une par élément, sans doublons. Si rien n'est lisible, réponds {\"noms\": []}." }
         ]
       }]
     })
