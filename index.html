@@ -357,13 +357,22 @@
     background:rgba(20,25,38,0.75); color:#fff; padding:9px 15px; border-radius:20px; font-size:13px; width:fit-content;
   }
   .spinner-clair{width:14px; height:14px; border:2.5px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%; animation:spin 0.7s linear infinite;}
+  .scan-puces-barre{
+    position:relative; z-index:2; margin-top:auto; display:flex; justify-content:center;
+    padding:0 14px 6px;
+  }
+  .scan-effacer-puces{
+    background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.3); color:#fff;
+    font-size:12px; font-weight:600; padding:5px 13px; border-radius:14px;
+  }
+  .scan-effacer-puces:active{ background:rgba(0,0,0,0.6); }
   .scan-puces{
-    position:relative; z-index:2; margin-top:auto; padding:0 14px 10px; display:flex; flex-wrap:wrap;
-    gap:8px; justify-content:center;
+    position:relative; z-index:2; padding:0 14px 10px; display:flex; flex-wrap:wrap;
+    gap:6px; justify-content:center;
   }
   .scan-puce{
-    background:rgba(255,255,255,0.94); color:var(--encre); border:2px solid var(--jaune);
-    padding:10px 16px; border-radius:22px; font-size:14.5px; font-weight:600; box-shadow:0 3px 10px rgba(0,0,0,0.3);
+    background:rgba(255,255,255,0.94); color:var(--encre); border:1.5px solid var(--jaune);
+    padding:7px 12px; border-radius:17px; font-size:13px; font-weight:600; box-shadow:0 3px 10px rgba(0,0,0,0.3);
     touch-action:none; user-select:none; will-change:transform;
   }
   .scan-puce:active{background:var(--jaune-2);}
@@ -607,6 +616,9 @@
 
   <div class="scan-etat-flottant" id="scan-etat-flottant"><div class="spinner-clair"></div><span>Lecture…</span></div>
 
+  <div class="scan-puces-barre" id="scan-puces-barre" style="display:none;">
+    <button type="button" class="scan-effacer-puces" id="btn-effacer-puces">Tout effacer</button>
+  </div>
   <div class="scan-puces" id="scan-puces"></div>
 
   <div class="scan-bas">
@@ -1160,6 +1172,11 @@ $('btn-scan-manuel').addEventListener('click', ()=>{
     scannerImage(true);
   }
 });
+$('btn-effacer-puces').addEventListener('click', ()=>{
+  puceCandidats = [];
+  rendrePucesScan();
+});
+
 function fermerTiroirScan(){
   $('scan-tiroir').classList.remove('ouvert');
   $('scan-tiroir-fond').classList.remove('ouvert');
@@ -1290,6 +1307,7 @@ const SEUIL_GLISSE = 55, SEUIL_TAP = 8;
 
 function rendrePucesScan(){
   const c = $('scan-puces');
+  $('scan-puces-barre').style.display = puceCandidats.length ? 'flex' : 'none';
   c.innerHTML = puceCandidats.map((p,i) => `<button class="scan-puce" data-i="${i}">${escHtml(p.nom)}</button>`).join('');
   c.querySelectorAll('.scan-puce').forEach(btn=>{
     let depart = null, dx = 0, dy = 0;
