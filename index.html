@@ -83,7 +83,9 @@
     width:58px; height:58px; border-radius:50%; background:var(--jaune);
     border:none; box-shadow:0 6px 18px rgba(232,163,61,0.5);
     display:flex; align-items:center; justify-content:center; z-index:25;
+    transition:transform 0.25s ease;
   }
+  body.recherche-visible .fab{ transform:translateY(-74px); }
   .fab:active{transform:scale(0.94);}
   .fab svg{width:25px; height:25px; stroke:var(--encre); fill:none; stroke-width:2.4;}
 
@@ -131,16 +133,24 @@
     background:var(--encre); color:#fff; border:none; border-radius:10px; padding:0 16px; font-weight:600; font-size:13.5px;
   }
 
+  /* Barre de recherche flottante en bas d'écran, qui apparaît quand on scroll vers le bas (voir
+     appliquerVisibiliteRecherche() en JS) plutôt que de rester collée sous l'en-tête. */
   .barre-recherche{
-    position:sticky; top:var(--header-h, 64px); z-index:15;
-    background:var(--papier); padding-top:2px; margin-bottom:14px;
+    position:fixed; left:16px; right:16px; bottom:0; z-index:30;
+    max-width:608px; margin:0 auto;
+    background:var(--carte); border-radius:14px 14px 0 0;
+    box-shadow:0 -8px 22px rgba(0,0,0,0.18);
+    padding:12px 14px calc(12px + env(safe-area-inset-bottom));
+    transform:translateY(120%); transition:transform 0.25s ease;
+    pointer-events:none;
   }
+  .barre-recherche.visible{ transform:translateY(0); pointer-events:auto; }
   .barre-recherche input{
     width:100%; box-sizing:border-box; padding:11px 38px 11px 12px; border-radius:10px;
-    border:1.5px solid var(--ligne); background:var(--carte); font-size:14.5px;
+    border:1.5px solid var(--ligne); background:var(--papier); font-size:14.5px;
   }
   .barre-recherche .btn-effacer-recherche{
-    position:absolute; right:8px; top:50%; transform:translateY(-50%);
+    position:absolute; right:22px; top:50%; transform:translateY(-50%);
     width:24px; height:24px; border-radius:50%; background:rgba(0,0,0,0.08);
     border:none; align-items:center; justify-content:center; font-size:13px; color:var(--encre);
     display:none;
@@ -719,14 +729,19 @@ let groupeCourant = null;
 let enAttente = []; // noms détectés en attente de validation pour le groupe courant
 let reglagesImpression = { colonnes:4, lettres:true, tableau:true, alternance:true };
 
-// Hauteur réelle de l'en-tête (variable selon l'appareil à cause de env(safe-area-inset-top)),
-// pour que les barres de recherche collantes (.barre-recherche) se positionnent juste en dessous.
-function majHauteurEntete(){
-  const entete = document.querySelector('header');
-  if(entete) document.documentElement.style.setProperty('--header-h', entete.offsetHeight + 'px');
+// Fait apparaître les barres de recherche (flottantes en bas d'écran) dès qu'on a scrollé un peu
+// vers le bas, et les recache en haut de page : plus intuitif qu'une barre fixe collée à l'en-tête,
+// et ça libère le haut de l'écran. Un seul écouteur pour toutes les barres, puisque seule celle de
+// l'écran actif est visible (les autres sont dans un .ecran caché en display:none).
+let rechercheVisible = false;
+function appliquerVisibiliteRecherche(){
+  const visible = window.scrollY > 24;
+  if(visible === rechercheVisible) return;
+  rechercheVisible = visible;
+  document.body.classList.toggle('recherche-visible', visible);
+  document.querySelectorAll('.barre-recherche').forEach(b => b.classList.toggle('visible', visible));
 }
-majHauteurEntete();
-window.addEventListener('resize', majHauteurEntete);
+window.addEventListener('scroll', appliquerVisibiliteRecherche, { passive:true });
 
 function toast(msg, type=""){
   const t = $('toast');
@@ -816,6 +831,8 @@ function afficherEcran(nom){
   $('btn-imprimer').style.display = nom === 'triee' ? 'flex' : 'none';
   $('btn-partage').style.display = nom === 'listes' ? 'flex' : 'none';
   $('fab').style.display = (nom === 'listes' || nom === 'liste') ? 'flex' : 'none';
+  window.scrollTo(0, 0);
+  appliquerVisibiliteRecherche();
 
   if(nom === 'listes'){ $('titre-ecran').textContent = 'Baliste'; $('sous-titre').textContent = 'Mes listes'; $('recherche-listes').value = ''; rendreListes(); }
   if(nom === 'liste'){ const l = listes.find(x=>x.id===listeCourante); $('titre-ecran').textContent = l ? l.nom : ''; $('sous-titre').textContent = 'Groupes'; $('recherche-groupes').value = ''; rendreGroupes(); }
@@ -922,8 +939,15 @@ function rendreGroupes(){
     const nb = entrees.filter(e=>e.groupeId===g.id).length;
     const numerote = g.type === 'incrementiel' ? ' · 🔢 incrémentiel' : '';
     const nomAffiche = g.nom ? escHtml(g.nom) : '<em>(sans nom)</em>';
-    return `<div class="carte" data-id="${g.id}">
-      <div><div class="nom">${nomAffiche}</div><div class="detail">${nb} nom${nb>1?'s':''}${numerote}</div></div>
+    // Plage des numéros déjà attribués dans ce groupe (mode incrémentiel), affichée et rendue
+    // cherchable numériquement (ex. taper "350" trouve le groupe numéroté de 300 à 386).
+    const numerosGroupe = entrees.filter(e=>e.groupeId===g.id && typeof e.numero === 'number').map(e=>e.numero);
+    const numMin = numerosGroupe.length ? Math.min(...numerosGroupe) : null;
+    const numMax = numerosGroupe.length ? Math.max(...numerosGroupe) : null;
+    const plage = numerosGroupe.length ? ` · n° ${numMin}${numMax !== numMin ? '–' + numMax : ''}` : '';
+    const attrsNumero = numerosGroupe.length ? ` data-numero-min="${numMin}" data-numero-max="${numMax}"` : '';
+    return `<div class="carte" data-id="${g.id}"${attrsNumero}>
+      <div><div class="nom">${nomAffiche}</div><div class="detail">${nb} nom${nb>1?'s':''}${numerote}${plage}</div></div>
       <div class="carte-actions">
         <button class="icone-mini btn-renommer-groupe" title="Renommer"><svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg></button>
         <button class="icone-mini supp btn-supprimer-groupe" title="Supprimer"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0l-1 14a2 2 0 01-2 2H7a2 2 0 01-2-2L4 6"/></svg></button>
@@ -961,9 +985,16 @@ function appliquerFiltreGroupes(){
   const q = normaliser(input.value.trim());
   wrap.classList.toggle('a-texte', !!input.value);
   const cartes = document.querySelectorAll('#corps-groupes .carte');
+  const qNombre = /^\d+$/.test(q) ? parseInt(q, 10) : null;
   let visibles = 0;
   cartes.forEach(carte=>{
-    const correspond = !q || normaliser(carte.textContent).includes(q);
+    let correspond = !q || normaliser(carte.textContent).includes(q);
+    // Recherche numérique : trouve le groupe même si le nombre tapé est dans sa plage de
+    // numéros attribués sans apparaître littéralement dans le texte affiché (ex. 350 entre 300 et 386).
+    if(!correspond && qNombre !== null && carte.dataset.numeroMin){
+      const min = parseInt(carte.dataset.numeroMin, 10), max = parseInt(carte.dataset.numeroMax, 10);
+      correspond = qNombre >= min && qNombre <= max;
+    }
     carte.style.display = correspond ? '' : 'none';
     if(correspond) visibles++;
   });
