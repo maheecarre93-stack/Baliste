@@ -734,14 +734,38 @@ let reglagesImpression = { colonnes:4, lettres:true, tableau:true, alternance:tr
 // et ça libère le haut de l'écran. Un seul écouteur pour toutes les barres, puisque seule celle de
 // l'écran actif est visible (les autres sont dans un .ecran caché en display:none).
 let rechercheVisible = false;
-function appliquerVisibiliteRecherche(){
-  const visible = window.scrollY > 24;
+function definirVisibiliteRecherche(visible){
   if(visible === rechercheVisible) return;
   rechercheVisible = visible;
   document.body.classList.toggle('recherche-visible', visible);
   document.querySelectorAll('.barre-recherche').forEach(b => b.classList.toggle('visible', visible));
 }
+function appliquerVisibiliteRecherche(){
+  definirVisibiliteRecherche(window.scrollY > 24);
+}
 window.addEventListener('scroll', appliquerVisibiliteRecherche, { passive:true });
+
+// Quand tout le contenu tient déjà à l'écran (peu de noms/groupes), la page ne défile pas et
+// l'évènement 'scroll' ci-dessus ne se déclenche donc jamais. On détecte alors directement le
+// geste de balayage — tactile ou molette — pour faire apparaître la recherche même si rien ne
+// bouge réellement à l'écran, comme demandé : "l'utilisateur force le scroll vers le bas".
+function pageDefilable(){
+  const se = document.scrollingElement || document.documentElement;
+  return se.scrollHeight > se.clientHeight + 4;
+}
+let toucheDepartY = null;
+document.addEventListener('touchstart', (e)=>{ toucheDepartY = e.touches[0].clientY; }, { passive:true });
+document.addEventListener('touchmove', (e)=>{
+  if(toucheDepartY === null || pageDefilable()) return;
+  const delta = toucheDepartY - e.touches[0].clientY; // positif = doigt qui monte = intention de scroller vers le bas
+  if(delta > 18) definirVisibiliteRecherche(true);
+  else if(delta < -18) definirVisibiliteRecherche(false);
+}, { passive:true });
+document.addEventListener('touchend', ()=>{ toucheDepartY = null; });
+document.addEventListener('wheel', (e)=>{
+  if(pageDefilable()) return;
+  definirVisibiliteRecherche(e.deltaY > 0);
+}, { passive:true });
 
 function toast(msg, type=""){
   const t = $('toast');
