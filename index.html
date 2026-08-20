@@ -384,6 +384,12 @@
   .scan-puce.dir-ajout{background:var(--vert); border-color:var(--vert); color:#fff;}
   .scan-puce.dir-retrait{background:var(--rouge); border-color:var(--rouge); color:#fff;}
   .scan-puce.envol{transition:transform 0.18s ease-in, opacity 0.18s ease-in; opacity:0;}
+  .scan-puce-decoupe{
+    display:inline-flex; align-items:center; justify-content:center;
+    margin-left:7px; width:18px; height:18px; border-radius:50%;
+    background:rgba(0,0,0,0.12); font-size:11px; vertical-align:middle;
+  }
+  .scan-puce-decoupe:active{background:rgba(0,0,0,0.25);}
   .scan-bas{
     position:relative; z-index:2; background:linear-gradient(transparent, rgba(0,0,0,0.7));
     padding:10px 16px calc(18px + env(safe-area-inset-bottom)); text-align:center;
@@ -1220,6 +1226,33 @@ $('scan-tiroir-fond').addEventListener('click', fermerTiroirScan);
   poignee.addEventListener('pointercancel', finGlisseTiroir);
 })();
 
+// Demande à la caméra de faire une mise au point continue centrée sur le cadre-guide plutôt que sur
+// l'ensemble de l'image, pour des captures plus nettes des étiquettes visées. Support très variable
+// selon appareil/navigateur (surtout Chrome Android) : on vérifie les capacités avant d'appliquer, et
+// on ignore silencieusement l'échec — le scan continue avec la mise au point par défaut de l'appareil.
+async function activerAutofocusCadre(piste, video){
+  if(!piste.getCapabilities) return;
+  try{
+    const capacites = piste.getCapabilities();
+    const avance = [];
+    if(capacites.focusMode && capacites.focusMode.includes('continuous')){
+      avance.push({ focusMode: 'continuous' });
+    }
+    if(capacites.pointsOfInterest && video.videoWidth){
+      // Coordonnées du centre du cadre-guide en fraction du flux vidéo natif (pas de l'écran),
+      // via la même conversion que la capture réelle (zoneCadreDansVideo) pour rester exact malgré
+      // le recadrage introduit par object-fit:cover.
+      const { sx, sy, sLargeur, sHauteur } = zoneCadreDansVideo(video);
+      const cx = (sx + sLargeur / 2) / video.videoWidth;
+      const cy = (sy + sHauteur / 2) / video.videoHeight;
+      avance.push({ pointsOfInterest: [{ x: cx, y: cy }] });
+    }
+    if(avance.length) await piste.applyConstraints({ advanced: avance });
+  }catch(err){
+    // Mise au point avancée non supportée : rien à faire, le scan continue normalement.
+  }
+}
+
 async function demarrerScan(){
   puceCandidats = [];
   $('scan-puces').innerHTML = '';
@@ -1241,6 +1274,8 @@ async function demarrerScan(){
   $('scan-overlay').classList.add('actif');
   $('btn-tiroir-scan').textContent = compteurScanCourant() + ' ajouté' + (compteurScanCourant()>1?'s':'');
   await video.play().catch(()=>{});
+  const pisteVideo = flotStream.getVideoTracks()[0];
+  if(pisteVideo) activerAutofocusCadre(pisteVideo, video);
   scannerImage(false);
 }
 
@@ -1313,7 +1348,24 @@ const SEUIL_GLISSE = 55, SEUIL_TAP = 8;
 function rendrePucesScan(){
   const c = $('scan-puces');
   $('scan-puces-barre').style.display = puceCandidats.length ? 'flex' : 'none';
-  c.innerHTML = puceCandidats.map((p,i) => `<button class="scan-puce" data-i="${i}">${escHtml(p.nom)}</button>`).join('');
+  c.innerHTML = puceCandidats.map((p,i) => {
+    const decoupable = p.nom.trim().split(/\s+/).length > 1;
+    return `<button class="scan-puce" data-i="${i}">${escHtml(p.nom)}${decoupable ? `<span class="scan-puce-decoupe" data-i="${i}" title="Découper en noms séparés">⑂</span>` : ''}</button>`;
+  }).join('');
+  c.querySelectorAll('.scan-puce-decoupe').forEach(span=>{
+    // Empêche le geste de glisse du bouton parent de démarrer quand on touche l'icône de découpage
+    span.addEventListener('pointerdown', e=> e.stopPropagation());
+    span.addEventListener('click', e=>{
+      e.stopPropagation();
+      const i = parseInt(span.dataset.i, 10);
+      const p = puceCandidats[i];
+      if(!p) return;
+      const morceaux = p.nom.trim().split(/\s+/).filter(Boolean);
+      if(morceaux.length < 2) return;
+      puceCandidats.splice(i, 1, ...morceaux.map(m => ({ nom: m })));
+      rendrePucesScan();
+    });
+  });
   c.querySelectorAll('.scan-puce').forEach(btn=>{
     let depart = null, dx = 0, dy = 0;
 
@@ -1394,12 +1446,13 @@ async function reconnaitreNoms(base64Image, mediaType){
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       model: "claude-haiku-4-5",
-      max_tokens: 200,
+      max_tokens: 350,
+      temperature: 0,
       messages: [{
         role: "user",
         content: [
           { type: "image", source: { type: "base64", media_type: mediaType, data: base64Image } },
-          { type: "text", text: "Cette photo montre une ou plusieurs boîtes aux lettres ou plaques nominatives. Ta seule tâche : trouver le nom de CHAQUE occupant (nom de famille avec ou sans prénom, ou nom d'entreprise/société/association/cabinet), manuscrit ou imprimé, et rien d'autre.\n\nNe renvoie JAMAIS, même partiellement ni comme entrée séparée : un numéro d'appartement (\"Appt\", \"APPT\", \"Appartement\", \"App.\", \"N°...\"), un numéro ou une mention d'étage (\"étage\", \"3ème\", \"9eme\", \"RDC\", \"Rez-de-chaussée\"), un autocollant ou une mention \"Stop Pub\"/publicité, ou un numéro seul. Si une étiquette mélange un numéro d'appartement/étage ET un nom sur la même ligne ou le même bout de papier (ex. \"APPT 396   9eme   DUPONT Jean\"), ignore complètement le numéro et l'étage et ne garde QUE le nom (\"DUPONT JEAN\").\n\nUne même boîte peut avoir plusieurs étiquettes distinctes empilées ou côte à côte (colocation, sous-location) : lis-les toutes séparément.\n\nSi UNE SEULE étiquette contient plusieurs noms séparés par \"/\", \"-\", \".\" ou un retour à la ligne (ex. \"DUPONT / MARTIN\", \"DUPONT-MARTIN\", \"DUPONT.MARTIN\"), traite-les comme des occupants distincts et renvoie chaque nom séparément — sauf si c'est manifestement un seul nom de famille à trait d'union porté par une seule personne (ex. \"JEAN-DUPONT\" écrit comme un nom composé unique, sans espace ni autre nom autour).\n\nRéponds UNIQUEMENT avec un objet JSON valide, sans texte avant ni après, sans balises markdown, exactement au format : {\"noms\": [\"NOM1\", \"NOM2\"]}. Majuscules, un nom par élément, sans doublons, jamais de numéro dans la valeur. Si rien n'est lisible, réponds {\"noms\": []}." }
+          { type: "text", text: "Tu es un lecteur méticuleux d'étiquettes de boîtes aux lettres et de plaques nominatives. Cette photo montre une ou plusieurs boîtes ou plaques dans le cadre, avec parfois plusieurs étiquettes empilées ou côte à côte sur une même boîte (colocation, sous-location) : repère-les toutes.\n\nRègle absolue : si le cadre ne montre aucune boîte aux lettres ni plaque nominative avec du texte réellement lisible (pièce, meuble, écran, clavier, mur nu, image floue ou hors-sujet...), réponds directement {\"lu\": [], \"noms\": []}. N'invente JAMAIS un nom, un numéro d'appartement ou un numéro d'étage qui ne correspond à aucun texte réellement visible sur une étiquette — dans le doute sur l'existence même du texte, réponds listes vides plutôt que de proposer quoi que ce soit.\n\nPour chaque étiquette visible, lis chaque ligne de texte lentement et lettre par lettre si l'écriture est manuscrite ou de mauvaise qualité, avant de conclure. Ne devine jamais un mot trop flou, coupé par le cadre, ou réellement illisible même en y regardant attentivement : ignore-le plutôt que d'inventer une lecture.\n\nUne fois chaque ligne lue, décide si c'est un NOM (personne — nom de famille avec ou sans prénom — ou entreprise/société/association/cabinet) ou autre chose. Exclue systématiquement, même partiellement ou comme entrée séparée :\n- un numéro d'appartement seul ou avec un mot (\"Appt\", \"APPT\", \"Appartement\", \"App.\", \"N°...\")\n- une mention d'étage (\"étage\", \"3ème\", \"9eme\", \"RDC\", \"Rez-de-chaussée\", \"Sous-sol\")\n- \"Stop Pub\", toute mention publicitaire ou autocollant\n- un numéro seul, un code, \"Bâtiment\", \"Escalier\", \"Entrée\", \"Boîte n°\"\n- une case vide, barrée, ou une mention \"Vide\"/\"Libre\"\nSi une étiquette mélange un numéro/étage ET un nom sur la même ligne ou le même bout de papier (ex. \"APPT 396   9eme   DUPONT Jean\"), ignore le numéro et l'étage, garde uniquement le nom (\"DUPONT JEAN\").\n\nSépare les occupants distincts : si une étiquette contient plusieurs noms séparés par \"/\", \"-\", \".\" ou un retour à la ligne (ex. \"DUPONT / MARTIN\", \"DUPONT-MARTIN\", \"DUPONT.MARTIN\"), renvoie chaque nom séparément — sauf si c'est manifestement un seul nom de famille composé porté par une seule personne, sans espace ni second nom autour (ex. \"JEAN-DUPONT\"). Un nom composé à trait d'union peut lui-même être un des éléments séparés par \"/\" : \"PRUDENT / ONDONGH-ESSALT\" donne deux noms distincts [\"PRUDENT\", \"ONDONGH-ESSALT\"], le trait d'union restant à l'intérieur du second nom. Un couple partageant le même nom de famille (\"M. et Mme DUPONT\", \"DUPONT Jean et Marie\") ne compte que pour un seul nom : \"DUPONT\".\n\nRéponds UNIQUEMENT avec un objet JSON valide, sans texte avant ni après, sans balises markdown, exactement au format : {\"lu\": [\"texte exact de chaque ligne examinée sur les étiquettes, majuscules\"], \"noms\": [\"NOM1\", \"NOM2\"]}. Le champ \"lu\" liste ta transcription brute de chaque ligne vue (même celles écartées, ex. les numéros d'appart) — sers-t'en pour vérifier ta décision avant de remplir \"noms\". Le champ \"noms\" ne garde que les noms retenus après filtrage : majuscules, un par élément, sans doublons, jamais de numéro ni de mention d'étage. Si rien n'est lisible, réponds {\"lu\": [], \"noms\": []}." }
         ]
       }]
     })
