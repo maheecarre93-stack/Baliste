@@ -504,12 +504,20 @@
 <main>
 
   <section class="ecran actif" id="ecran-listes">
+    <div class="barre-recherche" id="barre-recherche-listes" style="display:none;">
+      <input type="text" id="recherche-listes" placeholder="Rechercher une liste…" autocomplete="off">
+      <button type="button" class="btn-effacer-recherche" id="btn-effacer-recherche-listes" aria-label="Effacer la recherche">✕</button>
+    </div>
     <div id="corps-listes"></div>
   </section>
 
   <section class="ecran" id="ecran-liste">
     <button class="btn btn-principal" id="btn-voir-triee" style="margin-bottom:16px; background:var(--encre-2);">Voir la liste triée / imprimer</button>
     <div class="sec-titre">Groupes</div>
+    <div class="barre-recherche" id="barre-recherche-groupes" style="display:none;">
+      <input type="text" id="recherche-groupes" placeholder="Rechercher un groupe…" autocomplete="off">
+      <button type="button" class="btn-effacer-recherche" id="btn-effacer-recherche-groupes" aria-label="Effacer la recherche">✕</button>
+    </div>
     <div id="corps-groupes"></div>
   </section>
 
@@ -809,8 +817,8 @@ function afficherEcran(nom){
   $('btn-partage').style.display = nom === 'listes' ? 'flex' : 'none';
   $('fab').style.display = (nom === 'listes' || nom === 'liste') ? 'flex' : 'none';
 
-  if(nom === 'listes'){ $('titre-ecran').textContent = 'Baliste'; $('sous-titre').textContent = 'Mes listes'; rendreListes(); }
-  if(nom === 'liste'){ const l = listes.find(x=>x.id===listeCourante); $('titre-ecran').textContent = l ? l.nom : ''; $('sous-titre').textContent = 'Groupes'; rendreGroupes(); }
+  if(nom === 'listes'){ $('titre-ecran').textContent = 'Baliste'; $('sous-titre').textContent = 'Mes listes'; $('recherche-listes').value = ''; rendreListes(); }
+  if(nom === 'liste'){ const l = listes.find(x=>x.id===listeCourante); $('titre-ecran').textContent = l ? l.nom : ''; $('sous-titre').textContent = 'Groupes'; $('recherche-groupes').value = ''; rendreGroupes(); }
   if(nom === 'groupe'){ const g = groupes.find(x=>x.id===groupeCourant); $('titre-ecran').textContent = g ? g.nom : ''; $('sous-titre').textContent = 'Noms du groupe'; $('recherche-groupe').value = ''; rendreGroupe(); }
   if(nom === 'triee'){ const l = listes.find(x=>x.id===listeCourante); $('titre-ecran').textContent = l ? l.nom : ''; $('sous-titre').textContent = 'Liste triée'; $('recherche-triee').value = ''; rendreTriee(); }
 }
@@ -825,6 +833,7 @@ $('btn-retour').addEventListener('click', ()=>{
 // ---------- Écran Listes ----------
 function rendreListes(){
   const c = $('corps-listes');
+  $('barre-recherche-listes').style.display = listes.length ? '' : 'none';
   if(listes.length === 0){
     c.innerHTML = `<div class="vide">
       <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
@@ -865,12 +874,44 @@ function rendreListes(){
       if(await sauverTout()){ toast('Liste supprimée.', 'ok'); rendreListes(); }
     });
   });
+  appliquerFiltreListes();
 }
+
+// Filtre en direct les listes (utile si tu couvres beaucoup d'immeubles/adresses).
+function appliquerFiltreListes(){
+  const wrap = $('barre-recherche-listes');
+  const input = $('recherche-listes');
+  const q = normaliser(input.value.trim());
+  wrap.classList.toggle('a-texte', !!input.value);
+  const cartes = document.querySelectorAll('#corps-listes .carte');
+  let visibles = 0;
+  cartes.forEach(carte=>{
+    const correspond = !q || normaliser(carte.textContent).includes(q);
+    carte.style.display = correspond ? '' : 'none';
+    if(correspond) visibles++;
+  });
+  let msg = document.getElementById('aucun-resultat-listes');
+  if(!msg && cartes.length){
+    msg = document.createElement('div');
+    msg.id = 'aucun-resultat-listes';
+    msg.className = 'vide-recherche';
+    msg.textContent = 'Aucune liste ne correspond à la recherche.';
+    $('corps-listes').appendChild(msg);
+  }
+  if(msg) msg.style.display = (cartes.length && visibles === 0) ? '' : 'none';
+}
+$('recherche-listes').addEventListener('input', appliquerFiltreListes);
+$('btn-effacer-recherche-listes').addEventListener('click', ()=>{
+  $('recherche-listes').value = '';
+  appliquerFiltreListes();
+  $('recherche-listes').focus();
+});
 
 // ---------- Écran Liste (groupes) ----------
 function rendreGroupes(){
   const c = $('corps-groupes');
   const gr = groupes.filter(g=>g.listeId===listeCourante).sort((a,b)=>a.createdAt-b.createdAt);
+  $('barre-recherche-groupes').style.display = gr.length ? '' : 'none';
   if(gr.length === 0){
     c.innerHTML = `<div class="vide">
       <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8z"/></svg>
@@ -910,7 +951,38 @@ function rendreGroupes(){
       if(await sauverTout()){ toast('Groupe supprimé.', 'ok'); rendreGroupes(); }
     });
   });
+  appliquerFiltreGroupes();
 }
+
+// Filtre en direct les groupes de la liste courante (utile si un immeuble a beaucoup d'étages/entrées).
+function appliquerFiltreGroupes(){
+  const wrap = $('barre-recherche-groupes');
+  const input = $('recherche-groupes');
+  const q = normaliser(input.value.trim());
+  wrap.classList.toggle('a-texte', !!input.value);
+  const cartes = document.querySelectorAll('#corps-groupes .carte');
+  let visibles = 0;
+  cartes.forEach(carte=>{
+    const correspond = !q || normaliser(carte.textContent).includes(q);
+    carte.style.display = correspond ? '' : 'none';
+    if(correspond) visibles++;
+  });
+  let msg = document.getElementById('aucun-resultat-groupes');
+  if(!msg && cartes.length){
+    msg = document.createElement('div');
+    msg.id = 'aucun-resultat-groupes';
+    msg.className = 'vide-recherche';
+    msg.textContent = 'Aucun groupe ne correspond à la recherche.';
+    $('corps-groupes').appendChild(msg);
+  }
+  if(msg) msg.style.display = (cartes.length && visibles === 0) ? '' : 'none';
+}
+$('recherche-groupes').addEventListener('input', appliquerFiltreGroupes);
+$('btn-effacer-recherche-groupes').addEventListener('click', ()=>{
+  $('recherche-groupes').value = '';
+  appliquerFiltreGroupes();
+  $('recherche-groupes').focus();
+});
 
 $('btn-voir-triee').addEventListener('click', ()=> afficherEcran('triee'));
 
