@@ -131,6 +131,23 @@
     background:var(--encre); color:#fff; border:none; border-radius:10px; padding:0 16px; font-weight:600; font-size:13.5px;
   }
 
+  .barre-recherche{
+    position:sticky; top:var(--header-h, 64px); z-index:15;
+    background:var(--papier); padding-top:2px; margin-bottom:14px;
+  }
+  .barre-recherche input{
+    width:100%; box-sizing:border-box; padding:11px 38px 11px 12px; border-radius:10px;
+    border:1.5px solid var(--ligne); background:var(--carte); font-size:14.5px;
+  }
+  .barre-recherche .btn-effacer-recherche{
+    position:absolute; right:8px; top:50%; transform:translateY(-50%);
+    width:24px; height:24px; border-radius:50%; background:rgba(0,0,0,0.08);
+    border:none; align-items:center; justify-content:center; font-size:13px; color:var(--encre);
+    display:none;
+  }
+  .barre-recherche.a-texte .btn-effacer-recherche{ display:flex; }
+  .vide-recherche{ text-align:center; color:#a49c88; font-size:13.5px; padding:20px 10px; }
+
   .etat-ia{
     display:none; align-items:center; gap:10px; background:#eef1f7; color:var(--encre-2);
     padding:11px 13px; border-radius:10px; font-size:13.5px; margin-bottom:12px;
@@ -521,10 +538,18 @@
     </div>
 
     <div id="zone-attente"></div>
+    <div class="barre-recherche" id="barre-recherche-groupe" style="display:none;">
+      <input type="text" id="recherche-groupe" placeholder="Rechercher un nom…" autocomplete="off">
+      <button type="button" class="btn-effacer-recherche" id="btn-effacer-recherche-groupe" aria-label="Effacer la recherche">✕</button>
+    </div>
     <div id="zone-entrees"></div>
   </section>
 
   <section class="ecran" id="ecran-triee">
+    <div class="barre-recherche" id="barre-recherche-triee" style="display:none;">
+      <input type="text" id="recherche-triee" placeholder="Rechercher un nom…" autocomplete="off">
+      <button type="button" class="btn-effacer-recherche" id="btn-effacer-recherche-triee" aria-label="Effacer la recherche">✕</button>
+    </div>
     <div id="corps-triee"></div>
   </section>
 
@@ -686,6 +711,15 @@ let groupeCourant = null;
 let enAttente = []; // noms détectés en attente de validation pour le groupe courant
 let reglagesImpression = { colonnes:4, lettres:true, tableau:true, alternance:true };
 
+// Hauteur réelle de l'en-tête (variable selon l'appareil à cause de env(safe-area-inset-top)),
+// pour que les barres de recherche collantes (.barre-recherche) se positionnent juste en dessous.
+function majHauteurEntete(){
+  const entete = document.querySelector('header');
+  if(entete) document.documentElement.style.setProperty('--header-h', entete.offsetHeight + 'px');
+}
+majHauteurEntete();
+window.addEventListener('resize', majHauteurEntete);
+
 function toast(msg, type=""){
   const t = $('toast');
   t.textContent = msg;
@@ -777,8 +811,8 @@ function afficherEcran(nom){
 
   if(nom === 'listes'){ $('titre-ecran').textContent = 'Baliste'; $('sous-titre').textContent = 'Mes listes'; rendreListes(); }
   if(nom === 'liste'){ const l = listes.find(x=>x.id===listeCourante); $('titre-ecran').textContent = l ? l.nom : ''; $('sous-titre').textContent = 'Groupes'; rendreGroupes(); }
-  if(nom === 'groupe'){ const g = groupes.find(x=>x.id===groupeCourant); $('titre-ecran').textContent = g ? g.nom : ''; $('sous-titre').textContent = 'Noms du groupe'; rendreGroupe(); }
-  if(nom === 'triee'){ const l = listes.find(x=>x.id===listeCourante); $('titre-ecran').textContent = l ? l.nom : ''; $('sous-titre').textContent = 'Liste triée'; rendreTriee(); }
+  if(nom === 'groupe'){ const g = groupes.find(x=>x.id===groupeCourant); $('titre-ecran').textContent = g ? g.nom : ''; $('sous-titre').textContent = 'Noms du groupe'; $('recherche-groupe').value = ''; rendreGroupe(); }
+  if(nom === 'triee'){ const l = listes.find(x=>x.id===listeCourante); $('titre-ecran').textContent = l ? l.nom : ''; $('sous-titre').textContent = 'Liste triée'; $('recherche-triee').value = ''; rendreTriee(); }
 }
 
 $('btn-retour').addEventListener('click', ()=>{
@@ -885,6 +919,7 @@ function rendreGroupe(){
   rendreAttente();
   const c = $('zone-entrees');
   const liste = entrees.filter(e=>e.groupeId===groupeCourant);
+  $('barre-recherche-groupe').style.display = liste.length ? '' : 'none';
   if(liste.length === 0 && enAttente.length === 0){
     c.innerHTML = `<div class="vide">
       <svg viewBox="0 0 24 24"><path d="M4 8a2 2 0 012-2h1l1.5-2h7L17 6h1a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V8z"/><circle cx="12" cy="13" r="3.5"/></svg>
@@ -895,9 +930,41 @@ function rendreGroupe(){
     c.innerHTML = '<div class="sec-titre">Noms enregistrés (' + liste.length + ')</div><div id="liste-entrees-int"></div>';
     genererLigneEntrees($('liste-entrees-int'));
   }
+  appliquerFiltreGroupe();
   if(compteurScanCourant()) $('btn-tiroir-scan').textContent = compteurScanCourant() + ' ajouté' + (compteurScanCourant()>1?'s':'');
   rendreBarreNumero();
 }
+
+// Filtre en direct les noms déjà enregistrés du groupe courant (utile quand la liste devient longue,
+// ex. une centaine de noms après un gros scan) : insensible aux accents/majuscules via normaliser().
+function appliquerFiltreGroupe(){
+  const wrap = $('barre-recherche-groupe');
+  const input = $('recherche-groupe');
+  const q = normaliser(input.value.trim());
+  wrap.classList.toggle('a-texte', !!input.value);
+  const lignes = document.querySelectorAll('#zone-entrees .rangee-entree');
+  let visibles = 0;
+  lignes.forEach(row=>{
+    const correspond = !q || normaliser(row.textContent).includes(q);
+    row.style.display = correspond ? '' : 'none';
+    if(correspond) visibles++;
+  });
+  let msg = document.getElementById('aucun-resultat-groupe');
+  if(!msg && lignes.length){
+    msg = document.createElement('div');
+    msg.id = 'aucun-resultat-groupe';
+    msg.className = 'vide-recherche';
+    msg.textContent = 'Aucun nom ne correspond à la recherche.';
+    $('zone-entrees').appendChild(msg);
+  }
+  if(msg) msg.style.display = (lignes.length && visibles === 0) ? '' : 'none';
+}
+$('recherche-groupe').addEventListener('input', appliquerFiltreGroupe);
+$('btn-effacer-recherche-groupe').addEventListener('click', ()=>{
+  $('recherche-groupe').value = '';
+  appliquerFiltreGroupe();
+  $('recherche-groupe').focus();
+});
 
 // ---------- Groupes incrémentiels (numérotation automatique) ----------
 function valeurVariable(groupe, entree){
@@ -1473,6 +1540,7 @@ function rendreTriee(){
   liste.sort((a,b)=>normaliser(a.nom).localeCompare(normaliser(b.nom)));
 
   const c = $('corps-triee');
+  $('barre-recherche-triee').style.display = liste.length ? '' : 'none';
   if(liste.length === 0){
     c.innerHTML = `<div class="vide"><p>Aucun nom dans cette liste pour l'instant.</p></div>`;
   }else{
@@ -1484,6 +1552,7 @@ function rendreTriee(){
     });
     c.innerHTML = html;
   }
+  appliquerFiltreTriee();
 
   const listeObj = listes.find(x=>x.id===listeCourante);
   const titreDoc = listeObj ? listeObj.nom : 'Baliste';
@@ -1498,6 +1567,45 @@ function rendreTriee(){
   $('apercu-soustitre').textContent = sousTitreDoc;
   $('apercu-liste').innerHTML = htmlImpr;
 }
+
+// Filtre en direct la vue triée (utile quand la liste complète d'un immeuble atteint la centaine de
+// noms) : masque les lignes qui ne correspondent pas, et masque aussi un en-tête de lettre si plus
+// aucune ligne de son groupe ne correspond. Insensible aux accents/majuscules via normaliser().
+function appliquerFiltreTriee(){
+  const wrap = $('barre-recherche-triee');
+  const input = $('recherche-triee');
+  const q = normaliser(input.value.trim());
+  wrap.classList.toggle('a-texte', !!input.value);
+  const enfants = [...$('corps-triee').children].filter(el => el.id !== 'aucun-resultat-triee');
+  let groupeVisible = false, total = 0, visibles = 0;
+  for(let i = enfants.length - 1; i >= 0; i--){
+    const el = enfants[i];
+    if(el.classList.contains('lettre-sep')){
+      el.style.display = groupeVisible ? '' : 'none';
+      groupeVisible = false;
+    }else{
+      total++;
+      const correspond = !q || normaliser(el.textContent).includes(q);
+      el.style.display = correspond ? '' : 'none';
+      if(correspond){ groupeVisible = true; visibles++; }
+    }
+  }
+  let msg = document.getElementById('aucun-resultat-triee');
+  if(!msg && total){
+    msg = document.createElement('div');
+    msg.id = 'aucun-resultat-triee';
+    msg.className = 'vide-recherche';
+    msg.textContent = 'Aucun nom ne correspond à la recherche.';
+    $('corps-triee').appendChild(msg);
+  }
+  if(msg) msg.style.display = (total && visibles === 0) ? '' : 'none';
+}
+$('recherche-triee').addEventListener('input', appliquerFiltreTriee);
+$('btn-effacer-recherche-triee').addEventListener('click', ()=>{
+  $('recherche-triee').value = '';
+  appliquerFiltreTriee();
+  $('recherche-triee').focus();
+});
 
 // ---------- Pagination pour l'impression ----------
 // Convertit des millimètres en pixels CSS, pour raisonner en dimensions de page
