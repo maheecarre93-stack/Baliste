@@ -1361,21 +1361,25 @@ function mesurerNettete(ctx, largeur, hauteur){
 
 $('btn-scan-direct').addEventListener('click', ()=>{ if(scanActif) arreterScan(); else demarrerScan(); });
 $('btn-fermer-scan').addEventListener('click', arreterScan);
+function mettreScanEnPause(){
+  if(!autoScanActif) return;
+  autoScanActif = false;
+  clearTimeout(scanTimeoutId);
+  scanTimeoutId = null;
+  $('btn-scan-manuel').classList.add('pause');
+  $('btn-scan-manuel').textContent = 'Reprendre le scan';
+  $('scan-indicateur').classList.add('pause');
+}
+function reprendreScan(){
+  if(autoScanActif) return;
+  autoScanActif = true;
+  $('btn-scan-manuel').classList.remove('pause');
+  $('btn-scan-manuel').textContent = 'Mettre en pause';
+  $('scan-indicateur').classList.remove('pause');
+  scannerImage(true);
+}
 $('btn-scan-manuel').addEventListener('click', ()=>{
-  if(autoScanActif){
-    autoScanActif = false;
-    clearTimeout(scanTimeoutId);
-    scanTimeoutId = null;
-    $('btn-scan-manuel').classList.add('pause');
-    $('btn-scan-manuel').textContent = 'Reprendre le scan';
-    $('scan-indicateur').classList.add('pause');
-  }else{
-    autoScanActif = true;
-    $('btn-scan-manuel').classList.remove('pause');
-    $('btn-scan-manuel').textContent = 'Mettre en pause';
-    $('scan-indicateur').classList.remove('pause');
-    scannerImage(true);
-  }
+  if(autoScanActif) mettreScanEnPause(); else reprendreScan();
 });
 $('btn-effacer-puces').addEventListener('click', ()=>{
   puceCandidats = [];
@@ -1386,13 +1390,23 @@ function fermerTiroirScan(){
   $('scan-tiroir').classList.remove('ouvert');
   $('scan-tiroir-fond').classList.remove('ouvert');
 }
+// Le scan se met en pause tant que le tiroir des noms ajoutés est ouvert (évite de continuer à
+// analyser des images pendant qu'on consulte/trie la liste), et reprend à la fermeture — sauf s'il
+// était déjà en pause manuellement avant l'ouverture, auquel cas on respecte ce choix.
+let scanEtaitEnPauseAvantTiroir = false;
+function fermerTiroirEtReprendreScan(){
+  fermerTiroirScan();
+  if(!scanEtaitEnPauseAvantTiroir) reprendreScan();
+}
 $('btn-tiroir-scan').addEventListener('click', ()=>{
+  scanEtaitEnPauseAvantTiroir = !autoScanActif;
+  mettreScanEnPause();
   rendreTiroirScan();
   $('scan-tiroir').classList.add('ouvert');
   $('scan-tiroir-fond').classList.add('ouvert');
 });
-$('fermer-tiroir-scan').addEventListener('click', fermerTiroirScan);
-$('scan-tiroir-fond').addEventListener('click', fermerTiroirScan);
+$('fermer-tiroir-scan').addEventListener('click', fermerTiroirEtReprendreScan);
+$('scan-tiroir-fond').addEventListener('click', fermerTiroirEtReprendreScan);
 
 (function(){
   const poignee = $('fermer-tiroir-scan');
@@ -1414,7 +1428,7 @@ $('scan-tiroir-fond').addEventListener('click', fermerTiroirScan);
     depart = null;
     tiroir.style.transition = '';
     tiroir.style.transform = '';
-    if(dy > 70) fermerTiroirScan();
+    if(dy > 70) fermerTiroirEtReprendreScan();
   };
   poignee.addEventListener('pointerup', finGlisseTiroir);
   poignee.addEventListener('pointercancel', finGlisseTiroir);
