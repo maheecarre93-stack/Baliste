@@ -307,8 +307,8 @@
   .apercu-page .sstitre{ font-size:11px; color:#555; margin-bottom:12px; text-transform:none; letter-spacing:0; }
 
   .apercu-page .impr-page + .impr-page{ margin-top:22px; padding-top:16px; border-top:2px dashed #ccc; }
-  .apercu-page .impr-colonnes{ display:flex; gap:16px; align-items:flex-start; }
-  .apercu-page .impr-col{ flex:0 0 calc((100% - 48px) / 4); min-width:0; }
+  .apercu-page .impr-colonnes{ display:grid; grid-template-columns:repeat(var(--cols, 4), 1fr); gap:16px; align-items:start; }
+  .apercu-page .impr-col{ min-width:0; }
   .apercu-page .impr-lettre{
     font-family:'Oswald'; font-weight:700; font-size:11px; text-transform:uppercase;
     letter-spacing:0.04em; color:#888; margin:8px 0 2px;
@@ -461,8 +461,8 @@
     #zone-impression h1{font-family:'Oswald'; font-size:15px; margin:-3px 0 1px; text-align:center;}
     #zone-impression .sstitre{font-size:9.5px; color:#444; margin-bottom:6px; text-align:center;}
 
-    #zone-impression .impr-colonnes{ display:flex; gap:10px; align-items:flex-start; }
-    #zone-impression .impr-col{ flex:0 0 calc((100% - 30px) / 4); min-width:0; }
+    #zone-impression .impr-colonnes{ display:grid; grid-template-columns:repeat(var(--cols, 4), 1fr); gap:10px; align-items:start; }
+    #zone-impression .impr-col{ min-width:0; }
 
     #zone-impression .impr-lettre{
       font-family:'Oswald'; font-weight:700; font-size:9px; text-transform:uppercase;
@@ -1848,7 +1848,7 @@ function genererHtmlImpression(liste, titreDoc, sousTitreDoc){
   return pages.map((colonnesPage, iPage) => {
     const saut = iPage > 0 ? ' style="break-before:page; page-break-before:always;"' : '';
     const cols = colonnesPage.map(genererColonneImpression).join('');
-    return `<div class="impr-page"${saut}><div class="impr-colonnes">${cols}</div></div>`;
+    return `<div class="impr-page"${saut}><div class="impr-colonnes" style="--cols:${nbColonnes}">${cols}</div></div>`;
   }).join('');
 }
 
