@@ -1174,7 +1174,7 @@ function compteurScanCourant(){
 // Génère et branche les rangées de noms enregistrés dans un conteneur donné (réutilisé pour le tiroir de scan)
 function genererLigneEntrees(container){
   const grpObj = groupes.find(x=>x.id===groupeCourant);
-  const liste = entrees.filter(e=>e.groupeId===groupeCourant).sort((a,b)=>a.createdAt-b.createdAt);
+  const liste = entrees.filter(e=>e.groupeId===groupeCourant).sort((a,b)=>b.createdAt-a.createdAt);
   container.innerHTML = liste.map(e => `
     <div class="rangee-entree" data-id="${e.id}">
       <span class="nom">${escHtml(e.nom)}</span>
