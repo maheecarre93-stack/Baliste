@@ -307,7 +307,12 @@
   .apercu-page .sstitre{ font-size:11px; color:#555; margin-bottom:12px; text-transform:none; letter-spacing:0; }
 
   .apercu-page .impr-page + .impr-page{ margin-top:22px; padding-top:16px; border-top:2px dashed #ccc; }
-  .apercu-page .impr-colonnes{ display:grid; grid-template-columns:repeat(4, 174px); gap:16px; align-items:start; }
+  /* minmax(0, 174px) et non 174px fixe : cet aperçu est affiché dans la largeur
+     de l'écran du téléphone (contrairement à #zone-impression, mis à l'échelle
+     réelle d'une page A4 physique). Une largeur fixe déborde de la carte sur un
+     écran étroit ; minmax laisse les colonnes rétrécir pour tenir dans l'écran,
+     tout en gardant 174px (largeur réelle à l'impression) quand la place le permet. */
+  .apercu-page .impr-colonnes{ display:grid; grid-template-columns:repeat(4, minmax(0, 174px)); gap:16px; align-items:start; }
   .apercu-page .impr-col{ min-width:0; }
   .apercu-page .impr-lettre{
     font-family:'Oswald'; font-weight:700; font-size:11px; text-transform:uppercase;
@@ -1814,12 +1819,22 @@ function genererHtmlImpression(liste, titreDoc, sousTitreDoc){
   if(liste.length === 0) return '';
   const nbColonnes = Math.min(4, Math.max(1, reglagesImpression.colonnes || 1));
 
-  const { hLigne, hLettre } = mesurerHauteursImpression(reglagesImpression.tableau);
-  const hTitre = mesurerHauteurTitreImpression(titreDoc, sousTitreDoc);
   // Marge de sécurité : la mesure de hLigne/hLettre se fait hors-écran et peut
   // légèrement sous-estimer le rendu réel à l'impression (polices, arrondis).
-  // Sans marge, un débordement même minime casse l'ordre des colonnes suivantes
-  // (le moteur d'impression re-découpe la grille au mauvais endroit).
+  // Cette erreur est minime par ligne mais s'accumule sur une colonne de
+  // beaucoup de lignes (ex: 61 lignes × 1px d'erreur = 61px de débordement),
+  // suffisant pour faire basculer toute la grille CSS sur la page suivante
+  // (le moteur d'impression ne découpe pas une grille en plein milieu, il la
+  // pousse en bloc — d'où une 1ère page qui ne garde que le titre). D'où une
+  // marge multiplicative sur la hauteur de ligne, en plus de la marge de page.
+  const { hLigne: hLigneBrute, hLettre: hLettreBrute } = mesurerHauteursImpression(reglagesImpression.tableau);
+  const hLigne = hLigneBrute * 1.08;
+  const hLettre = hLettreBrute * 1.08;
+  const hTitre = mesurerHauteurTitreImpression(titreDoc, sousTitreDoc);
+  // Marge de sécurité sur le budget de page lui-même (indépendante de la marge
+  // par ligne ci-dessus) : sans elle, un débordement même minime casse l'ordre
+  // des colonnes suivantes (le moteur d'impression re-découpe la grille au
+  // mauvais endroit).
   const hPage = mm2px(297 - 18) * 0.93;
 
   let derniereLettre = '';
