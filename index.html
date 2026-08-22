@@ -1825,22 +1825,54 @@ function genererHtmlImpression(liste, titreDoc, sousTitreDoc){
     lignes.push({ entree: e, h: hLigne });
   });
 
+  // Remplit une colonne à bloc à partir de `depart`, jusqu'à ce que le budget de
+  // hauteur soit dépassé (une colonne reçoit toujours au moins une ligne).
+  function remplirColonneGloutonne(depart, budget){
+    let hCumul = 0, curseur = depart;
+    const colonne = [];
+    while(curseur < lignes.length){
+      const l = lignes[curseur];
+      if(hCumul + l.h > budget && colonne.length > 0) break;
+      colonne.push(l);
+      hCumul += l.h;
+      curseur++;
+    }
+    return { colonne, curseur };
+  }
+
   const pages = [];
   let curseur = 0;
   while(curseur < lignes.length){
     const budget = hPage - (pages.length === 0 ? hTitre : 0);
+
+    // Sonde combien de lignes un remplissage glouton (colonne 1 à bloc, puis 2, etc.)
+    // consommerait sur cette page, pour savoir si tout le reste de la liste y tient.
+    let sonde = curseur;
+    for(let c=0; c<nbColonnes && sonde<lignes.length; c++){
+      sonde = remplirColonneGloutonne(sonde, budget).curseur;
+    }
+
     const colonnesPage = [];
-    for(let c=0; c<nbColonnes && curseur<lignes.length; c++){
-      let hCumul = 0;
-      const colonne = [];
-      while(curseur < lignes.length){
-        const l = lignes[curseur];
-        if(hCumul + l.h > budget && colonne.length > 0) break;
-        colonne.push(l);
-        hCumul += l.h;
-        curseur++;
+    if(sonde >= lignes.length){
+      // Tout le reste tient sur cette page (c'est la dernière) : on répartit les
+      // lignes également entre les colonnes plutôt que de remplir gloutonnement
+      // les premières et laisser les suivantes vides — sinon la moitié droite de
+      // la page reste blanche dès que le contenu ne suffit pas à remplir toutes
+      // les colonnes à bloc.
+      const parColonne = Math.ceil((sonde - curseur) / nbColonnes);
+      for(let c=0; c<nbColonnes && curseur<lignes.length; c++){
+        const colonne = lignes.slice(curseur, curseur + parColonne);
+        colonnesPage.push(colonne);
+        curseur += colonne.length;
       }
-      colonnesPage.push(colonne);
+    }else{
+      // D'autres pages suivent : on garde le remplissage à bloc pour préserver
+      // l'ordre de lecture entre les pages (voir commentaire de la fonction).
+      for(let c=0; c<nbColonnes && curseur<lignes.length; c++){
+        const r = remplirColonneGloutonne(curseur, budget);
+        colonnesPage.push(r.colonne);
+        curseur = r.curseur;
+      }
     }
     pages.push(colonnesPage);
   }
