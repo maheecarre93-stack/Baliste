@@ -20,6 +20,13 @@
     --vert:#4C7A5D;
     --ligne:#E1DACB;
     --ombre: 0 2px 10px rgba(28,43,69,0.08);
+    /* Multiplicateur de taille de texte pour l'aperçu et l'impression (réglage
+       "Taille du texte") ; 1 = taille actuelle/la plus petite. Piloté en JS via
+       appliquerEchellePolice(). Défini sur :root pour que les sondes de mesure
+       hors-écran (mesurerHauteursImpression, mesurerHauteurTitreImpression)
+       héritent automatiquement de la même valeur que ce qui est réellement
+       affiché, sans dupliquer le facteur à la main. */
+    --echelle-police:1;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
   html,body{margin:0; padding:0; background:var(--papier); color:var(--anthracite); font-family:'IBM Plex Sans', sans-serif; -webkit-font-smoothing:antialiased;}
@@ -308,8 +315,8 @@
        s'ajuste au tableau. */
     width:fit-content; min-width:540px; max-width:900px;
   }
-  .apercu-page h1{ font-family:'Oswald'; font-size:17px; margin:0 0 2px; }
-  .apercu-page .sstitre{ font-size:11px; color:#555; margin-bottom:12px; text-transform:none; letter-spacing:0; }
+  .apercu-page h1{ font-family:'Oswald'; font-size:calc(17px * var(--echelle-police)); margin:0 0 2px; }
+  .apercu-page .sstitre{ font-size:calc(11px * var(--echelle-police)); color:#555; margin-bottom:12px; text-transform:none; letter-spacing:0; }
 
   .apercu-page .impr-page + .impr-page{ margin-top:22px; padding-top:16px; border-top:2px dashed #ccc; }
   /* minmax(0, 174px) et non 174px fixe : cet aperçu est affiché dans la largeur
@@ -320,25 +327,25 @@
   .apercu-page .impr-colonnes{ display:grid; grid-template-columns:repeat(4, minmax(0, 174px)); gap:16px; align-items:start; }
   .apercu-page .impr-col{ min-width:0; }
   .apercu-page .impr-lettre{
-    font-family:'Oswald'; font-weight:700; font-size:11px; text-transform:uppercase;
+    font-family:'Oswald'; font-weight:700; font-size:calc(11px * var(--echelle-police)); text-transform:uppercase;
     letter-spacing:0.04em; color:#888; margin:8px 0 2px;
   }
   .apercu-page .impr-ligne{
     display:flex; justify-content:space-between; align-items:baseline; gap:6px;
-    font-size:12.5px; line-height:1.4; padding:2px 3px;
+    font-size:calc(12.5px * var(--echelle-police)); line-height:1.4; padding:2px 3px;
   }
   .apercu-page .impr-ligne .nom{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
-  .apercu-page .impr-ligne .grp{ color:#666; font-family:'IBM Plex Mono'; font-size:11px; flex-shrink:0; }
+  .apercu-page .impr-ligne .grp{ color:#666; font-family:'IBM Plex Mono'; font-size:calc(11px * var(--echelle-police)); flex-shrink:0; }
   .apercu-page .impr-ligne .leader{
     flex:1; min-width:8px; height:2px; align-self:flex-end; margin:0 3px 4px;
     background-image:linear-gradient(to right, #999 35%, transparent 0%);
     background-size:4px 2px; background-repeat:repeat-x; background-position:left bottom;
   }
   .apercu-page .impr-ligne.impair{ color:#888; }
-  .apercu-page table.impr-table{ width:100%; border-collapse:collapse; font-size:12.5px; table-layout:fixed; }
+  .apercu-page table.impr-table{ width:100%; border-collapse:collapse; font-size:calc(12.5px * var(--echelle-police)); table-layout:fixed; }
   .apercu-page table.impr-table td{ padding:3px 6px; border:1px solid #999; }
   .apercu-page table.impr-table td.nom{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .apercu-page table.impr-table td.grp{ font-family:'IBM Plex Mono'; font-size:11px; color:#666; text-align:right; white-space:nowrap; width:34%; }
+  .apercu-page table.impr-table td.grp{ font-family:'IBM Plex Mono'; font-size:calc(11px * var(--echelle-police)); color:#666; text-align:right; white-space:nowrap; width:34%; }
   .apercu-page table.impr-table tr.impair td{ background:#eee; }
   .apercu-page table.impr-table td.impr-lettre{ border:none; }
 
@@ -468,22 +475,22 @@
       -webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact;
     }
     #zone-impression{ display:block; padding:0; font-family:'IBM Plex Sans', sans-serif; color:#000; }
-    #zone-impression h1{font-family:'Oswald'; font-size:15px; margin:-3px 0 1px; text-align:center;}
-    #zone-impression .sstitre{font-size:9.5px; color:#444; margin-bottom:6px; text-align:center;}
+    #zone-impression h1{font-family:'Oswald'; font-size:calc(15px * var(--echelle-police)); margin:-3px 0 1px; text-align:center;}
+    #zone-impression .sstitre{font-size:calc(9.5px * var(--echelle-police)); color:#444; margin-bottom:6px; text-align:center;}
 
     #zone-impression .impr-colonnes{ display:grid; grid-template-columns:repeat(4, 174px); gap:10px; align-items:start; }
     #zone-impression .impr-col{ min-width:0; break-inside:avoid; }
 
     #zone-impression .impr-lettre{
-      font-family:'Oswald'; font-weight:700; font-size:9px; text-transform:uppercase;
+      font-family:'Oswald'; font-weight:700; font-size:calc(9px * var(--echelle-police)); text-transform:uppercase;
       letter-spacing:0.04em; color:#666; margin:4px 0 1px; break-inside:avoid; break-after:avoid;
     }
     #zone-impression .impr-ligne{
       display:flex; justify-content:space-between; align-items:baseline; gap:4px;
-      font-size:9px; line-height:1.3; padding:1px 2px; break-inside:avoid;
+      font-size:calc(9px * var(--echelle-police)); line-height:1.3; padding:1px 2px; break-inside:avoid;
     }
     #zone-impression .impr-ligne .nom{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;}
-    #zone-impression .impr-ligne .grp{ color:#555; font-family:'IBM Plex Mono'; font-size:8.5px; flex-shrink:0; }
+    #zone-impression .impr-ligne .grp{ color:#555; font-family:'IBM Plex Mono'; font-size:calc(8.5px * var(--echelle-police)); flex-shrink:0; }
     #zone-impression .impr-ligne .leader{
       flex:1; min-width:6px; height:1.5px; align-self:flex-end; margin:0 2px 3px;
       background-image:linear-gradient(to right, #999 35%, transparent 0%);
@@ -491,10 +498,10 @@
     }
     #zone-impression .impr-ligne.impair{ color:#777; }
 
-    #zone-impression table.impr-table{ width:100%; border-collapse:collapse; font-size:9px; table-layout:fixed; }
+    #zone-impression table.impr-table{ width:100%; border-collapse:collapse; font-size:calc(9px * var(--echelle-police)); table-layout:fixed; }
     #zone-impression table.impr-table td{ padding:1.5px 4px; border:0.75px solid #999; }
     #zone-impression table.impr-table td.nom{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    #zone-impression table.impr-table td.grp{ font-family:'IBM Plex Mono'; font-size:8.5px; color:#555; text-align:right; white-space:nowrap; width:34%; }
+    #zone-impression table.impr-table td.grp{ font-family:'IBM Plex Mono'; font-size:calc(8.5px * var(--echelle-police)); color:#555; text-align:right; white-space:nowrap; width:34%; }
     #zone-impression table.impr-table tr.impair td{ background:#ececec; }
     #zone-impression table.impr-table td.impr-lettre{ padding-top:5px; border:none; }
   }
@@ -633,6 +640,15 @@
       </div>
     </div>
 
+    <div class="champ" style="margin-bottom:10px;">
+      <label>Taille du texte</label>
+      <div class="segments" id="segments-taille">
+        <button type="button" data-val="petit">Petit</button>
+        <button type="button" data-val="moyen">Moyen</button>
+        <button type="button" data-val="grand">Grand</button>
+      </div>
+    </div>
+
     <div class="toggle-ligne">
       <label for="tg-lettres">Séparateurs de lettres (A, B, C…)</label>
       <input type="checkbox" class="toggle-switch" id="tg-lettres">
@@ -737,7 +753,14 @@ let ecranActuel = 'listes';
 let listeCourante = null;
 let groupeCourant = null;
 let enAttente = []; // noms détectés en attente de validation pour le groupe courant
-let reglagesImpression = { colonnes:4, lettres:true, tableau:true, alternance:true };
+let reglagesImpression = { colonnes:4, lettres:true, tableau:true, alternance:true, taillePolice:'petit' };
+
+// Multiplicateurs appliqués à --echelle-police (voir :root) selon le réglage
+// "Taille du texte" ; 'petit' correspond aux tailles historiques de l'app.
+const ECHELLES_POLICE = { petit:1, moyen:1.2, grand:1.4 };
+function appliquerEchellePolice(){
+  document.documentElement.style.setProperty('--echelle-police', ECHELLES_POLICE[reglagesImpression.taillePolice] || 1);
+}
 
 // Fait apparaître les barres de recherche (flottantes en bas d'écran) dès qu'on a scrollé un peu
 // vers le bas, et les recache en haut de page : plus intuitif qu'une barre fixe collée à l'en-tête,
@@ -808,6 +831,7 @@ function chargerReglagesImpression(){
     const v = localStorage.getItem('pf_reglages_impression');
     if(v) reglagesImpression = Object.assign({}, reglagesImpression, JSON.parse(v));
   }catch(e){}
+  appliquerEchellePolice();
 }
 function sauverReglagesImpression(){
   try{ localStorage.setItem('pf_reglages_impression', JSON.stringify(reglagesImpression)); }catch(e){}
@@ -1773,9 +1797,12 @@ function mesurerHauteursImpression(tableau){
   sonde.style.cssText = 'position:fixed; left:-9999px; top:0; width:200px; visibility:hidden;';
   document.body.appendChild(sonde);
   let hLigne, hLettre;
+  // font-size en calc(...*var(--echelle-police)) plutôt qu'en px fixe : la sonde
+  // hérite ainsi automatiquement du même réglage "Taille du texte" que ce qui est
+  // réellement affiché (voir --echelle-police sur :root), sans dupliquer le facteur.
   if(tableau){
     sonde.innerHTML =
-      '<table style="width:100%;border-collapse:collapse;font-size:9px;table-layout:fixed;">' +
+      '<table style="width:100%;border-collapse:collapse;font-size:calc(9px * var(--echelle-police));table-layout:fixed;">' +
       '<tr><td colspan="2" style="padding:5px 4px 1.5px;border:none;font-family:\'Oswald\';font-weight:700;letter-spacing:0.04em;">A</td></tr>' +
       '<tr><td style="padding:1.5px 4px;border:0.75px solid #999;">Test</td><td style="padding:1.5px 4px;border:0.75px solid #999;">A1</td></tr>' +
       '</table>';
@@ -1784,8 +1811,8 @@ function mesurerHauteursImpression(tableau){
     hLigne = trs[1].getBoundingClientRect().height;
   }else{
     sonde.innerHTML =
-      '<div style="font-family:\'Oswald\';font-weight:700;font-size:9px;letter-spacing:0.04em;margin:4px 0 1px;">A</div>' +
-      '<div style="font-size:9px;line-height:1.3;padding:1px 2px;">Test</div>';
+      '<div style="font-family:\'Oswald\';font-weight:700;font-size:calc(9px * var(--echelle-police));letter-spacing:0.04em;margin:4px 0 1px;">A</div>' +
+      '<div style="font-size:calc(9px * var(--echelle-police));line-height:1.3;padding:1px 2px;">Test</div>';
     hLettre = sonde.children[0].getBoundingClientRect().height;
     hLigne = sonde.children[1].getBoundingClientRect().height;
   }
@@ -1800,8 +1827,8 @@ function mesurerHauteurTitreImpression(titre, sousTitre){
   const sonde = document.createElement('div');
   sonde.style.cssText = 'position:fixed; left:-9999px; top:0; width:' + mm2px(210 - 18) + 'px; visibility:hidden;';
   sonde.innerHTML =
-    '<h1 style="font-family:\'Oswald\';font-size:15px;margin:-3px 0 1px;text-align:center;">' + escHtml(titre) + '</h1>' +
-    '<div style="font-size:9.5px;margin-bottom:6px;text-align:center;">' + escHtml(sousTitre) + '</div>';
+    '<h1 style="font-family:\'Oswald\';font-size:calc(15px * var(--echelle-police));margin:-3px 0 1px;text-align:center;">' + escHtml(titre) + '</h1>' +
+    '<div style="font-size:calc(9.5px * var(--echelle-police));margin-bottom:6px;text-align:center;">' + escHtml(sousTitre) + '</div>';
   document.body.appendChild(sonde);
   const h = sonde.getBoundingClientRect().height;
   document.body.removeChild(sonde);
@@ -1939,6 +1966,9 @@ function ouvrirApercuImpression(){
   document.querySelectorAll('#segments-colonnes button').forEach(b=>{
     b.classList.toggle('actif', parseInt(b.dataset.val, 10) === reglagesImpression.colonnes);
   });
+  document.querySelectorAll('#segments-taille button').forEach(b=>{
+    b.classList.toggle('actif', b.dataset.val === reglagesImpression.taillePolice);
+  });
   $('tg-lettres').checked = reglagesImpression.lettres;
   $('tg-tableau').checked = reglagesImpression.tableau;
   $('tg-alternance').checked = reglagesImpression.alternance;
@@ -1953,6 +1983,15 @@ document.querySelectorAll('#segments-colonnes button').forEach(b=>{
   b.addEventListener('click', ()=>{
     reglagesImpression.colonnes = parseInt(b.dataset.val, 10);
     document.querySelectorAll('#segments-colonnes button').forEach(x=>x.classList.toggle('actif', x===b));
+    sauverReglagesImpression();
+    rendreTriee();
+  });
+});
+document.querySelectorAll('#segments-taille button').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    reglagesImpression.taillePolice = b.dataset.val;
+    document.querySelectorAll('#segments-taille button').forEach(x=>x.classList.toggle('actif', x===b));
+    appliquerEchellePolice();
     sauverReglagesImpression();
     rendreTriee();
   });
