@@ -461,6 +461,10 @@
   .scan-tiroir .icone-mini{background:rgba(255,255,255,0.12);}
   .scan-tiroir .icone-mini svg{stroke:#d8d3c4;}
   .scan-tiroir .icone-mini.supp svg{stroke:#f0a08f;}
+  .scan-tiroir .ligne-ajout{ margin-bottom:12px; }
+  .scan-tiroir .ligne-ajout input{ background:rgba(255,255,255,0.08); border-color:rgba(255,255,255,0.2); color:#fff; }
+  .scan-tiroir .ligne-ajout input::placeholder{ color:#a49c88; }
+  .scan-tiroir .ligne-ajout button{ background:var(--jaune); color:var(--encre); }
 
   footer.info{ text-align:center; font-size:11px; color:#a49c88; padding:4px 30px 90px; line-height:1.5; }
 
@@ -710,6 +714,10 @@
   <div class="scan-tiroir" id="scan-tiroir">
     <div class="scan-tiroir-poignee" id="fermer-tiroir-scan"></div>
     <div class="sec-titre" style="color:#fff;">Noms ajoutés dans ce groupe</div>
+    <div class="ligne-ajout" id="ligne-ajout-tiroir">
+      <input type="text" id="ajout-manuel-tiroir" placeholder="Ajouter un nom">
+      <button id="btn-ajout-manuel-tiroir">Ajouter</button>
+    </div>
     <div id="scan-tiroir-liste"></div>
   </div>
 </div>
@@ -1292,6 +1300,25 @@ $('btn-ajout-manuel').addEventListener('click', async ()=>{
   if(await sauverEntrees()){ tamponner(); rendreGroupe(); rendreListes(); toast('Nom ajouté.', 'ok'); }
 });
 $('ajout-manuel').addEventListener('keydown', (e)=>{ if(e.key==='Enter') $('btn-ajout-manuel').click(); });
+
+// Même geste d'ajout manuel que ci-dessus, mais depuis le tiroir "Noms ajoutés"
+// pendant un scan : évite d'avoir à fermer le tiroir pour ajouter un nom raté par
+// la reconnaissance ou tapé à la main.
+$('btn-ajout-manuel-tiroir').addEventListener('click', async ()=>{
+  const input = $('ajout-manuel-tiroir');
+  const val = input.value.trim();
+  if(!val) return;
+  const { entree, numerote } = construireEntree(val);
+  entrees.push(entree);
+  input.value = '';
+  if(numerote) await sauverGroupes();
+  if(await sauverEntrees()){
+    tamponner(); rendreGroupe(); rendreListes(); rendreTiroirScan();
+    $('btn-tiroir-scan').textContent = compteurScanCourant() + ' ajouté' + (compteurScanCourant()>1?'s':'');
+    toast('Nom ajouté.', 'ok');
+  }
+});
+$('ajout-manuel-tiroir').addEventListener('keydown', (e)=>{ if(e.key==='Enter') $('btn-ajout-manuel-tiroir').click(); });
 
 // ---------- Photo + reconnaissance IA ----------
 $('input-photo').addEventListener('change', async (e)=>{
