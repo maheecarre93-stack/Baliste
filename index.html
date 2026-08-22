@@ -307,7 +307,7 @@
   .apercu-page .sstitre{ font-size:11px; color:#555; margin-bottom:12px; text-transform:none; letter-spacing:0; }
 
   .apercu-page .impr-page + .impr-page{ margin-top:22px; padding-top:16px; border-top:2px dashed #ccc; }
-  .apercu-page .impr-colonnes{ display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; align-items:start; }
+  .apercu-page .impr-colonnes{ display:grid; grid-template-columns:repeat(4, 174px); gap:16px; align-items:start; }
   .apercu-page .impr-col{ min-width:0; }
   .apercu-page .impr-lettre{
     font-family:'Oswald'; font-weight:700; font-size:11px; text-transform:uppercase;
@@ -461,8 +461,8 @@
     #zone-impression h1{font-family:'Oswald'; font-size:15px; margin:-3px 0 1px; text-align:center;}
     #zone-impression .sstitre{font-size:9.5px; color:#444; margin-bottom:6px; text-align:center;}
 
-    #zone-impression .impr-colonnes{ display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; align-items:start; }
-    #zone-impression .impr-col{ min-width:0; }
+    #zone-impression .impr-colonnes{ display:grid; grid-template-columns:repeat(4, 174px); gap:10px; align-items:start; }
+    #zone-impression .impr-col{ min-width:0; break-inside:avoid; }
 
     #zone-impression .impr-lettre{
       font-family:'Oswald'; font-weight:700; font-size:9px; text-transform:uppercase;
@@ -1804,13 +1804,23 @@ function mesurerHauteurTitreImpression(titre, sousTitre){
 // d'une page suivante avant que la colonne voisine de la page précédente n'ait
 // été lue, ce qui cassait l'ordre alphabétique pour quelqu'un lisant le papier
 // comme un livre.
+// Largeur fixe d'une colonne à l'impression (correspond à la largeur d'une
+// colonne sur 4, page A4 avec marges de 9mm). Une constante plutôt qu'une
+// fraction de la largeur de page : à 1, 2 ou 3 colonnes, le contenu garde une
+// largeur de lecture normale au lieu de s'étirer sur toute la feuille.
+const LARGEUR_COLONNE_IMPRESSION = 174;
+
 function genererHtmlImpression(liste, titreDoc, sousTitreDoc){
   if(liste.length === 0) return '';
   const nbColonnes = Math.min(4, Math.max(1, reglagesImpression.colonnes || 1));
 
   const { hLigne, hLettre } = mesurerHauteursImpression(reglagesImpression.tableau);
   const hTitre = mesurerHauteurTitreImpression(titreDoc, sousTitreDoc);
-  const hPage = mm2px(297 - 18);
+  // Marge de sécurité : la mesure de hLigne/hLettre se fait hors-écran et peut
+  // légèrement sous-estimer le rendu réel à l'impression (polices, arrondis).
+  // Sans marge, un débordement même minime casse l'ordre des colonnes suivantes
+  // (le moteur d'impression re-découpe la grille au mauvais endroit).
+  const hPage = mm2px(297 - 18) * 0.93;
 
   let derniereLettre = '';
   const lignes = [];
@@ -1880,7 +1890,7 @@ function genererHtmlImpression(liste, titreDoc, sousTitreDoc){
   return pages.map((colonnesPage, iPage) => {
     const saut = iPage > 0 ? ' style="break-before:page; page-break-before:always;"' : '';
     const cols = colonnesPage.map(genererColonneImpression).join('');
-    return `<div class="impr-page"${saut}><div class="impr-colonnes" style="grid-template-columns:repeat(${nbColonnes}, 1fr);">${cols}</div></div>`;
+    return `<div class="impr-page"${saut}><div class="impr-colonnes" style="grid-template-columns:repeat(${nbColonnes}, ${LARGEUR_COLONNE_IMPRESSION}px);">${cols}</div></div>`;
   }).join('');
 }
 
