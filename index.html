@@ -301,7 +301,12 @@
   .apercu-page{
     background:#fff; color:#161616; margin:0 auto; padding:16px 14px;
     border-radius:6px; box-shadow:0 3px 16px rgba(28,43,69,0.2);
-    min-width:540px; max-width:900px;
+    /* width:fit-content : sans ça, cette carte est un bloc normal qui prend une
+       largeur fixe (bornée par min/max-width) indépendante de son contenu ; si la
+       grille de colonnes à l'intérieur est plus large (ex: 4 colonnes sur un petit
+       écran), le texte déborde visuellement du fond blanc au lieu que le fond
+       s'ajuste au tableau. */
+    width:fit-content; min-width:540px; max-width:900px;
   }
   .apercu-page h1{ font-family:'Oswald'; font-size:17px; margin:0 0 2px; }
   .apercu-page .sstitre{ font-size:11px; color:#555; margin-bottom:12px; text-transform:none; letter-spacing:0; }
