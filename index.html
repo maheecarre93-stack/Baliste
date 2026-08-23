@@ -2173,7 +2173,13 @@ function ouvrirApercuImpression(){
 }
 $('btn-imprimer').addEventListener('click', ouvrirApercuImpression);
 $('btn-fermer-apercu').addEventListener('click', ()=> $('apercu-overlay').classList.remove('actif'));
-$('btn-imprimer-final').addEventListener('click', ()=> window.print());
+$('btn-imprimer-final').addEventListener('click', ()=>{
+  const l = listes.find(x=>x.id===listeCourante);
+  const titreOriginal = document.title;
+  if(l) document.title = l.nom;
+  window.print();
+  window.addEventListener('afterprint', ()=>{ document.title = titreOriginal; }, { once:true });
+});
 
 document.querySelectorAll('#segments-colonnes button').forEach(b=>{
   b.addEventListener('click', ()=>{
