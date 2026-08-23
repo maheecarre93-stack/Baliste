@@ -252,8 +252,16 @@
 
   .lien-secours{
     display:block; text-align:center; font-size:12.5px; color:#7a7362; text-decoration:underline;
-    margin:2px 0 16px; padding:4px;
+    margin:2px 0 16px; padding:4px; background:none; border:none; width:100%; font-family:inherit; cursor:pointer;
   }
+
+  .partage-liste-item{
+    display:flex; align-items:center; gap:10px; padding:9px 2px; border-bottom:1px solid var(--ligne);
+  }
+  .partage-liste-item:last-child{ border-bottom:none; }
+  .partage-liste-item input[type=checkbox]{ width:19px; height:19px; accent-color:var(--jaune); flex-shrink:0; }
+  .partage-liste-item .nom{ flex:1; font-size:14.5px; font-weight:500; }
+  .partage-liste-item .detail{ font-size:11px; color:#8a8271; font-family:'IBM Plex Mono'; flex-shrink:0; }
 
   /* ---- Réglages d'impression ---- */
   .segments{ display:flex; gap:6px; }
@@ -610,14 +618,24 @@
   <div class="feuille">
     <div class="poignee"></div>
     <h2>Partager / fusionner</h2>
+
     <div class="champ">
-      <label>1. Mes données à envoyer</label>
-      <textarea id="txt-export" readonly style="width:100%; height:80px; border-radius:10px; border:1.5px solid var(--ligne); padding:10px; font-family:'IBM Plex Mono'; font-size:11.5px; background:var(--carte);"></textarea>
-      <button class="btn btn-principal" id="btn-copier" style="margin-top:8px;">Copier</button>
+      <label>1. Choisis les listes à envoyer</label>
+      <div id="partage-choix-listes"></div>
     </div>
+
+    <div class="champ" id="champ-export" style="display:none; margin-top:6px;">
+      <label>2. Texte à envoyer</label>
+      <textarea id="txt-export" readonly style="width:100%; height:150px; border-radius:10px; border:1.5px solid var(--ligne); padding:10px; font-family:'IBM Plex Mono'; font-size:11.5px; background:var(--carte); white-space:pre;"></textarea>
+      <div style="display:flex; gap:8px; margin-top:8px;">
+        <button class="btn btn-principal" id="btn-partager-natif" style="display:none;">Partager…</button>
+        <button class="btn btn-principal" id="btn-copier" style="background:var(--encre-2);">Copier</button>
+      </div>
+    </div>
+
     <div class="champ" style="margin-top:6px;">
-      <label>2. Coller les données reçues d'un autre facteur</label>
-      <textarea id="txt-import" placeholder="Colle ici le texte envoyé par l'autre facteur" style="width:100%; height:80px; border-radius:10px; border:1.5px solid var(--ligne); padding:10px; font-family:'IBM Plex Mono'; font-size:11.5px; background:var(--carte);"></textarea>
+      <label>3. Coller les données reçues d'un autre facteur</label>
+      <textarea id="txt-import" placeholder="Colle ici le texte envoyé par l'autre facteur" style="width:100%; height:100px; border-radius:10px; border:1.5px solid var(--ligne); padding:10px; font-family:'IBM Plex Mono'; font-size:11.5px; background:var(--carte);"></textarea>
       <button class="btn btn-principal" id="btn-fusionner" style="margin-top:8px; background:var(--vert);">Fusionner</button>
     </div>
   </div>
@@ -847,7 +865,9 @@ function sauverReglagesImpression(){
 
 // ---------- Partage / fusion entre facteurs ----------
 function ouvrirPartage(){
-  $('txt-export').value = JSON.stringify({ listes, groupes, entrees });
+  rendrePartageChoixListes();
+  $('champ-export').style.display = 'none';
+  $('txt-export').value = '';
   $('txt-import').value = '';
   $('voile-partage').classList.add('ouvert');
 }
@@ -855,8 +875,115 @@ function fermerPartage(){ $('voile-partage').classList.remove('ouvert'); }
 $('voile-partage').addEventListener('click', (e)=>{ if(e.target.id==='voile-partage') fermerPartage(); });
 $('btn-partage').addEventListener('click', ouvrirPartage);
 
+function rendrePartageChoixListes(){
+  const cont = $('partage-choix-listes');
+  const ls = listes.slice().sort((a,b)=>b.createdAt-a.createdAt);
+  if(ls.length === 0){
+    cont.innerHTML = '<p style="font-size:13px; color:#8a7362; margin:4px 0;">Aucune liste à partager.</p>';
+    return;
+  }
+  cont.innerHTML = `<button type="button" class="lien-secours" id="btn-partage-tout">Tout sélectionner / tout désélectionner</button>` +
+    ls.map(l=>{
+      const gr = groupes.filter(g=>g.listeId===l.id);
+      const nb = entrees.filter(e=>gr.some(g=>g.id===e.groupeId)).length;
+      return `<label class="partage-liste-item">
+        <input type="checkbox" class="partage-case" data-id="${l.id}">
+        <span class="nom">${escHtml(l.nom)}</span>
+        <span class="detail">${gr.length} gr. · ${nb} nom${nb>1?'s':''}</span>
+      </label>`;
+    }).join('');
+  cont.querySelectorAll('.partage-case').forEach(cb=> cb.addEventListener('change', majApercuPartage));
+  $('btn-partage-tout').addEventListener('click', ()=>{
+    const cases = cont.querySelectorAll('.partage-case');
+    const toutesCochees = Array.from(cases).every(c=>c.checked);
+    cases.forEach(c=> c.checked = !toutesCochees);
+    majApercuPartage();
+  });
+}
+
+function majApercuPartage(){
+  const idsChoisis = Array.from(document.querySelectorAll('.partage-case:checked')).map(c=>c.dataset.id);
+  if(idsChoisis.length === 0){
+    $('champ-export').style.display = 'none';
+    $('txt-export').value = '';
+    return;
+  }
+  $('txt-export').value = genererTexteExport(idsChoisis);
+  $('champ-export').style.display = 'block';
+}
+
+// Format lisible : chaque liste entre des repères explicites, plutôt qu'un bloc JSON illisible
+function genererTexteExport(idsListes){
+  const blocs = idsListes.map(id=>{
+    const l = listes.find(x=>x.id===id);
+    if(!l) return '';
+    const gr = groupes.filter(g=>g.listeId===id);
+    let bloc = `——— LISTE : ${l.nom} ———\n`;
+    gr.forEach(g=>{
+      const entreesGroupe = entrees.filter(e=>e.groupeId===g.id).sort((a,b)=>a.createdAt-b.createdAt);
+      if(g.type === 'incrementiel'){
+        const prochain = numeroActuel(g);
+        bloc += `\n[Groupe${g.nom ? ': ' + g.nom : ''} — incrémentiel, prochain n°${prochain}]\n`;
+        entreesGroupe.forEach(e=>{
+          bloc += (typeof e.numero === 'number' ? `${e.nom} (${e.numero})` : e.nom) + '\n';
+        });
+      }else{
+        bloc += `\n[Groupe: ${g.nom}]\n`;
+        entreesGroupe.forEach(e=>{ bloc += e.nom + '\n'; });
+      }
+    });
+    bloc += `——— FIN DE LISTE ———`;
+    return bloc;
+  }).filter(Boolean);
+  return blocs.join('\n\n');
+}
+
+// Relit le format ci-dessus et reconstruit listes/groupes/entrées
+function analyserTexteImport(texte){
+  const reListe = /^———\s*LISTE\s*:\s*(.+?)\s*———$/;
+  const reFin = /^———\s*FIN DE LISTE\s*———$/;
+  const reGroupeIncr = /^\[Groupe(?:\s*:\s*(.*?))?\s*—\s*incrémentiel,\s*prochain n°\s*(-?\d+)\]$/;
+  const reGroupeNormal = /^\[Groupe\s*:\s*(.+)\]$/;
+  const reEntreeNumero = /^(.+?)\s*\((-?\d+)\)$/;
+
+  const listesImport = [];
+  let listeCour = null, groupeCour = null;
+
+  texte.split(/\r?\n/).forEach(ligneBrute=>{
+    const ligne = ligneBrute.trim();
+    if(!ligne) return;
+    let m;
+    if((m = ligne.match(reListe))){
+      listeCour = { nom: m[1], groupes: [] };
+      listesImport.push(listeCour);
+      groupeCour = null;
+      return;
+    }
+    if(reFin.test(ligne)){ groupeCour = null; return; }
+    if(!listeCour) return;
+    if((m = ligne.match(reGroupeIncr))){
+      groupeCour = { nom: m[1] || '', type:'incrementiel', prochainNumero: parseInt(m[2], 10), entrees: [] };
+      listeCour.groupes.push(groupeCour);
+      return;
+    }
+    if((m = ligne.match(reGroupeNormal))){
+      groupeCour = { nom: m[1], type:'normal', entrees: [] };
+      listeCour.groupes.push(groupeCour);
+      return;
+    }
+    if(!groupeCour) return;
+    if(groupeCour.type === 'incrementiel' && (m = ligne.match(reEntreeNumero))){
+      groupeCour.entrees.push({ nom: m[1].trim(), numero: parseInt(m[2], 10) });
+    }else{
+      groupeCour.entrees.push({ nom: ligne, numero: null });
+    }
+  });
+  return listesImport;
+}
+
 $('btn-copier').addEventListener('click', async ()=>{
   const texte = $('txt-export').value;
+  if(!texte){ toast('Choisis au moins une liste.', 'err'); return; }
   try{
     await navigator.clipboard.writeText(texte);
     toast('Copié ! Envoie ce texte à l\'autre facteur.', 'ok');
@@ -867,15 +994,57 @@ $('btn-copier').addEventListener('click', async ()=>{
   }
 });
 
+if(navigator.share){
+  $('btn-partager-natif').style.display = 'flex';
+  $('btn-partager-natif').addEventListener('click', async ()=>{
+    const texte = $('txt-export').value;
+    if(!texte){ toast('Choisis au moins une liste.', 'err'); return; }
+    try{ await navigator.share({ text: texte }); }
+    catch(e){ /* partage annulé par l'utilisateur */ }
+  });
+}
+
 $('btn-fusionner').addEventListener('click', async ()=>{
   const texte = $('txt-import').value.trim();
   if(!texte){ toast('Colle d\'abord les données reçues.', 'err'); return; }
-  let obj;
-  try{ obj = JSON.parse(texte); }catch(e){ toast('Texte invalide, vérifie le collage.', 'err'); return; }
+  const listesImport = analyserTexteImport(texte);
+  if(listesImport.length === 0){ toast('Aucune liste reconnue dans ce texte.', 'err'); return; }
+
   let ajouts = 0;
-  (obj.listes||[]).forEach(l => { if(!listes.some(x=>x.id===l.id)){ listes.push(l); ajouts++; } });
-  (obj.groupes||[]).forEach(g => { if(!groupes.some(x=>x.id===g.id)){ groupes.push(g); ajouts++; } });
-  (obj.entrees||[]).forEach(e => { if(!entrees.some(x=>x.id===e.id)){ entrees.push(e); ajouts++; } });
+  listesImport.forEach(li=>{
+    let liste = listes.find(x=> normaliser(x.nom) === normaliser(li.nom));
+    if(!liste){
+      liste = { id: nouvelId(), nom: li.nom, createdAt: Date.now() };
+      listes.push(liste);
+      ajouts++;
+    }
+    li.groupes.forEach(gi=>{
+      let groupe = groupes.find(x=> x.listeId===liste.id && x.type===gi.type && normaliser(x.nom||'') === normaliser(gi.nom||''));
+      if(!groupe){
+        groupe = { id: nouvelId(), listeId: liste.id, nom: gi.nom, type: gi.type, createdAt: Date.now() };
+        if(gi.type === 'incrementiel'){
+          groupe.numerotation = { depart: gi.prochainNumero };
+          groupe.prochainNumero = gi.prochainNumero;
+        }
+        groupes.push(groupe);
+        ajouts++;
+      }else if(gi.type === 'incrementiel' && typeof gi.prochainNumero === 'number'){
+        if(typeof groupe.prochainNumero !== 'number' || gi.prochainNumero > groupe.prochainNumero){
+          groupe.prochainNumero = gi.prochainNumero;
+        }
+      }
+      gi.entrees.forEach(ei=>{
+        const existe = entrees.some(x=> x.groupeId===groupe.id && normaliser(x.nom) === normaliser(ei.nom));
+        if(!existe){
+          const nouvelle = { id: nouvelId(), groupeId: groupe.id, nom: ei.nom, createdAt: Date.now() };
+          if(ei.numero !== null) nouvelle.numero = ei.numero;
+          entrees.push(nouvelle);
+          ajouts++;
+        }
+      });
+    });
+  });
+
   if(await sauverTout()){
     fermerPartage();
     afficherEcran(ecranActuel);
