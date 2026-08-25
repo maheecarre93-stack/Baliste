@@ -1339,6 +1339,14 @@ $('btn-numero-plus').addEventListener('click', ()=> ajusterNumero(1));
 $('btn-scan-numero-moins').addEventListener('click', ()=> ajusterNumero(-1));
 $('btn-scan-numero-plus').addEventListener('click', ()=> ajusterNumero(1));
 
+// Empêche ces boutons de voler le focus du champ de saisie au moment du tap (comportement
+// par défaut sur mousedown) : sans ça, le clavier virtuel se ferme à chaque + / - ou "Ajouter",
+// puis doit être rouvert en retapant dans le champ pour le nom suivant.
+[$('btn-numero-moins'), $('btn-numero-plus'), $('btn-scan-numero-moins'), $('btn-scan-numero-plus'),
+ $('btn-ajout-manuel'), $('btn-ajout-manuel-tiroir')].forEach(b=>{
+  b.addEventListener('mousedown', e => e.preventDefault());
+});
+
 // Édition manuelle du numéro courant au clic (clavier numérique uniquement)
 function brancherEditionNumero(idSpan, idInput){
   const span = $(idSpan), input = $(idInput);
