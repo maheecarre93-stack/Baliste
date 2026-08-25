@@ -193,11 +193,11 @@
     display:flex; align-items:center; gap:8px; padding:11px 12px; background:var(--carte);
     border:1px solid var(--ligne); border-radius:11px; margin-bottom:7px;
   }
-  .rangee-entree .nom{flex:1; font-weight:500; font-size:14.5px;}
+  .rangee-entree .nom{flex:1; font-weight:500; font-size:14.5px; cursor:pointer;}
   .rangee-entree input{flex:1; min-width:0; padding:8px 9px; border-radius:8px; border:1.5px solid var(--jaune); font-size:14.5px;}
   .badge-numero{
     font-family:'IBM Plex Mono'; font-weight:600; font-size:12.5px; color:#5c5544;
-    background:#f1ece0; padding:4px 9px; border-radius:7px; flex-shrink:0;
+    background:#f1ece0; padding:4px 9px; border-radius:7px; flex-shrink:0; cursor:pointer;
   }
   .rangee-entree input.f-numero{ flex:0 0 60px; width:60px; text-align:center; }
 
@@ -1409,32 +1409,51 @@ function genererLigneEntrees(container){
       if(await sauverEntrees()){ toast('Nom supprimé.', 'ok'); rendreGroupe(); rendreListes(); if(scanActif) rendreTiroirScan(); }
     });
   });
-  container.querySelectorAll('.btn-editer').forEach(b=>{
-    b.addEventListener('click', (ev)=>{
+  container.querySelectorAll('.btn-editer, .nom, .badge-numero').forEach(el=>{
+    el.addEventListener('click', (ev)=>{
       const rangee = ev.target.closest('.rangee-entree');
-      const id = rangee.dataset.id;
-      const e = entrees.find(x=>x.id===id);
-      const champNumero = typeof e.numero === 'number'
-        ? `<input type="text" inputmode="numeric" class="f-numero" value="${escHtml(String(e.numero))}">`
-        : '';
-      rangee.innerHTML = `
-        <input type="text" value="${escHtml(e.nom)}">
-        ${champNumero}
-        <button class="icone-mini btn-confirmer-edit" title="Valider"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></button>`;
-      const input = rangee.querySelector('input:not(.f-numero)');
-      const inputNumero = rangee.querySelector('.f-numero');
-      input.focus();
-      rangee.querySelector('.btn-confirmer-edit').addEventListener('click', async ()=>{
-        const val = input.value.trim();
-        if(!val){ toast('Le nom ne peut pas être vide.', 'err'); return; }
-        e.nom = val;
-        if(inputNumero){
-          const n = parseInt(inputNumero.value, 10);
-          if(!isNaN(n)) e.numero = n;
-        }
-        if(await sauverEntrees()){ toast('Nom modifié.', 'ok'); rendreGroupe(); if(scanActif) rendreTiroirScan(); }
-      });
+      if(rangee.querySelector('input')) return; // déjà en édition
+      demarrerEditionEntree(rangee);
     });
+  });
+}
+
+// Édition d'une entrée : lancée en tapant le crayon, le nom ou le numéro. La ligne s'enregistre
+// et se referme automatiquement dès que le focus quitte les deux champs (tap ailleurs à l'écran),
+// pas seulement via le bouton ✓.
+function demarrerEditionEntree(rangee){
+  const id = rangee.dataset.id;
+  const e = entrees.find(x=>x.id===id);
+  const champNumero = typeof e.numero === 'number'
+    ? `<input type="text" inputmode="numeric" class="f-numero" value="${escHtml(String(e.numero))}">`
+    : '';
+  rangee.innerHTML = `
+    <input type="text" value="${escHtml(e.nom)}">
+    ${champNumero}
+    <button class="icone-mini btn-confirmer-edit" title="Valider"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></button>`;
+  const input = rangee.querySelector('input:not(.f-numero)');
+  const inputNumero = rangee.querySelector('.f-numero');
+  input.focus();
+
+  let confirme = false;
+  async function confirmer(){
+    if(confirme) return;
+    confirme = true;
+    const val = input.value.trim();
+    if(!val){ toast('Le nom ne peut pas être vide.', 'err'); confirme = false; return; }
+    e.nom = val;
+    if(inputNumero){
+      const n = parseInt(inputNumero.value, 10);
+      if(!isNaN(n)) e.numero = n;
+    }
+    if(await sauverEntrees()){ toast('Nom modifié.', 'ok'); rendreGroupe(); if(scanActif) rendreTiroirScan(); }
+    else confirme = false;
+  }
+  rangee.querySelector('.btn-confirmer-edit').addEventListener('click', confirmer);
+  rangee.addEventListener('focusout', ()=>{
+    setTimeout(()=>{
+      if(rangee.isConnected && !rangee.contains(document.activeElement)) confirmer();
+    }, 0);
   });
 }
 
