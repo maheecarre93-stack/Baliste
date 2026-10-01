@@ -535,6 +535,9 @@
   <button class="icon-btn" id="btn-partage" style="display:none" title="Partager / fusionner">
     <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
   </button>
+  <button class="icon-btn" id="btn-exporter-excel" style="display:none" title="Exporter en Excel">
+    <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+  </button>
   <button class="icon-btn" id="btn-imprimer" style="display:none" title="Aperçu avant impression">
     <svg viewBox="0 0 24 24"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6z"/></svg>
   </button>
@@ -771,6 +774,7 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 
@@ -779,6 +783,7 @@ let ecranActuel = 'listes';
 let listeCourante = null;
 let groupeCourant = null;
 let enAttente = []; // noms détectés en attente de validation pour le groupe courant
+let listeTrieeCourante = []; // dernier rendu de la vue triée, réutilisé par l'export Excel
 let reglagesImpression = { colonnes:4, lettres:true, tableau:true, alternance:true, taillePolice:'petit' };
 
 // Multiplicateurs appliqués à --echelle-police (voir :root) selon le réglage
@@ -1064,6 +1069,7 @@ function afficherEcran(nom){
   $('ecran-' + nom).classList.add('actif');
   $('btn-retour').style.display = nom === 'listes' ? 'none' : 'flex';
   $('btn-imprimer').style.display = nom === 'triee' ? 'flex' : 'none';
+  $('btn-exporter-excel').style.display = nom === 'triee' ? 'flex' : 'none';
   $('btn-partage').style.display = nom === 'listes' ? 'flex' : 'none';
   $('fab').style.display = (nom === 'listes' || nom === 'liste') ? 'flex' : 'none';
   window.scrollTo(0, 0);
@@ -1936,6 +1942,7 @@ function rendreTriee(){
     groupe: valeurVariable(gr.find(g=>g.id===e.groupeId), e)
   }));
   liste.sort((a,b)=>normaliser(a.nom).localeCompare(normaliser(b.nom)));
+  listeTrieeCourante = liste;
 
   const c = $('corps-triee');
   $('barre-recherche-triee').style.display = liste.length ? '' : 'none';
@@ -1965,6 +1972,22 @@ function rendreTriee(){
   $('apercu-soustitre').textContent = sousTitreDoc;
   $('apercu-liste').innerHTML = htmlImpr;
 }
+
+// ---------- Export Excel (.xlsx) ----------
+// Fichier le plus épuré possible — deux colonnes, Nom et Groupe, dans l'ordre
+// alphabétique affiché — pour import direct dans une base de données.
+function exporterExcel(){
+  if(listeTrieeCourante.length === 0){ toast('Aucun nom à exporter.', 'err'); return; }
+  const donnees = listeTrieeCourante.map(e => ({ Nom: e.nom, Groupe: e.groupe }));
+  const feuille = XLSX.utils.json_to_sheet(donnees);
+  const classeur = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(classeur, feuille, 'Liste');
+  const l = listes.find(x=>x.id===listeCourante);
+  const base = l ? l.nom.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/gi, '-').toLowerCase() : 'export';
+  XLSX.writeFile(classeur, 'baliste-' + base + '.xlsx');
+  toast('Fichier Excel téléchargé.', 'ok');
+}
+$('btn-exporter-excel').addEventListener('click', exporterExcel);
 
 // Filtre en direct la vue triée (utile quand la liste complète d'un immeuble atteint la centaine de
 // noms) : masque les lignes qui ne correspondent pas, et masque aussi un en-tête de lettre si plus
