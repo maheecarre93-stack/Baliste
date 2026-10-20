@@ -1185,7 +1185,7 @@ function rendreGroupes(){
     const numerosGroupe = entrees.filter(e=>e.groupeId===g.id && typeof e.numero === 'number').map(e=>e.numero);
     const numMin = numerosGroupe.length ? Math.min(...numerosGroupe) : null;
     const numMax = numerosGroupe.length ? Math.max(...numerosGroupe) : null;
-    const plage = numerosGroupe.length ? ` · n° ${numMin}${numMax !== numMin ? '–' + numMax : ''}` : '';
+    const plage = numerosGroupe.length ? ` · n° ${formaterNumero(g, numMin)}${numMax !== numMin ? '–' + formaterNumero(g, numMax) : ''}` : '';
     const attrsNumero = numerosGroupe.length ? ` data-numero-min="${numMin}" data-numero-max="${numMax}"` : '';
     return `<div class="carte" data-id="${g.id}"${attrsNumero}>
       <div><div class="nom">${nomAffiche}</div><div class="detail">${nb} nom${nb>1?'s':''}${numerote}${plage}</div></div>
@@ -1311,9 +1311,22 @@ $('btn-effacer-recherche-groupe').addEventListener('click', ()=>{
 });
 
 // ---------- Groupes incrémentiels (numérotation automatique) ----------
+// Tous les numéros d'un groupe s'affichent avec le même nombre de chiffres que le plus long
+// (ex. A009 à côté de A103), pour une lecture prévisible.
+function largeurNumeros(groupe){
+  const nums = entrees.filter(e=>e.groupeId===groupe.id && typeof e.numero === 'number').map(e=>e.numero);
+  if(typeof groupe.prochainNumero === 'number') nums.push(groupe.prochainNumero);
+  return Math.max(1, ...nums.map(n=>String(Math.abs(n)).length));
+}
+
+function formaterNumero(groupe, n){
+  const chiffres = String(Math.abs(n)).padStart(largeurNumeros(groupe), '0');
+  return (n < 0 ? '-' : '') + chiffres;
+}
+
 function valeurVariable(groupe, entree){
   if(groupe && groupe.type === 'incrementiel' && typeof entree.numero === 'number'){
-    return (groupe.nom || '') + entree.numero;
+    return (groupe.nom || '') + formaterNumero(groupe, entree.numero);
   }
   return (groupe && groupe.nom) || '';
 }
@@ -1326,7 +1339,7 @@ function numeroActuel(groupe){
 function rendreBarreNumero(){
   const g = groupes.find(x=>x.id===groupeCourant);
   const incrementiel = !!(g && g.type === 'incrementiel');
-  const valeur = incrementiel ? (g.nom || '') + numeroActuel(g) : '—';
+  const valeur = incrementiel ? (g.nom || '') + formaterNumero(g, numeroActuel(g)) : '—';
   $('barre-numero').style.display = incrementiel ? 'flex' : 'none';
   $('numero-chiffre-actuel').textContent = valeur;
   $('scan-numero').style.display = incrementiel ? 'flex' : 'none';
@@ -1359,7 +1372,7 @@ function brancherEditionNumero(idSpan, idInput){
   const activer = ()=>{
     const g = groupes.find(x=>x.id===groupeCourant);
     if(!g || g.type !== 'incrementiel') return;
-    input.value = numeroActuel(g);
+    input.value = formaterNumero(g, numeroActuel(g));
     span.style.display = 'none';
     input.style.display = 'inline-block';
     input.focus();
@@ -1431,7 +1444,7 @@ function demarrerEditionEntree(rangee){
   const id = rangee.dataset.id;
   const e = entrees.find(x=>x.id===id);
   const champNumero = typeof e.numero === 'number'
-    ? `<input type="text" inputmode="numeric" class="f-numero" value="${escHtml(String(e.numero))}">`
+    ? `<input type="text" inputmode="numeric" class="f-numero" value="${escHtml(formaterNumero(groupes.find(g=>g.id===e.groupeId) || {id:e.groupeId}, e.numero))}">`
     : '';
   rangee.innerHTML = `
     <input type="text" value="${escHtml(e.nom)}">
